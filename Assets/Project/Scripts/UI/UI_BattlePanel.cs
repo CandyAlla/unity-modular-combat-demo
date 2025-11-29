@@ -3,7 +3,8 @@ using UnityEngine;
 using UnityEngine.UI;
 
 // UI_BattlePanel handles in-battle UI interactions such as exiting back to login.
-// It delegates scene transitions to GameClientManager instead of loading scenes directly.
+// It wires the exit button to GameClientManager for scene transitions instead of loading scenes directly.
+// Keep it focused on UI events only; scene flow lives in the managers/state system.
 public class UI_BattlePanel : MonoBehaviour
 {
     [SerializeField] private Button _exitBattleButton;

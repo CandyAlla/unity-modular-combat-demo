@@ -13,7 +13,7 @@ public enum SceneStateId
 
 // SceneStateSystem is a tiny state machine that hands off to per-scene managers.
 // It registers scene managers and drives async transitions in this AOT-only demo.
-// Transition logging keeps the Map_GameEntry -> Map_BattleScene path visible.
+// Transition logging keeps the Map_GameEntry -> Map_LoginScene path visible.
 public class SceneStateSystem
 {
     private readonly Dictionary<SceneStateId, ISceneManager> _managers = new Dictionary<SceneStateId, ISceneManager>();
