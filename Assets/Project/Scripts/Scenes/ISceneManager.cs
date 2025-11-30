@@ -4,8 +4,13 @@
 // SceneStateSystem looks up managers by Id to drive scene changes.
 public interface ISceneManager
 {
+    #region Properties
     SceneStateId Id { get; }
+    #endregion
+
+    #region Methods
     void DoBeforeEntering();
     void DoEntered();
     void DoBeforeLeaving();
+    #endregion
 }

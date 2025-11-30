@@ -5,8 +5,11 @@ using UnityEngine;
 // Logging here helps trace the startup flow end to end.
 public class GameEntry : MonoBehaviour
 {
+    #region Fields
     public static GameEntry Instance { get; private set; }
+    #endregion
 
+    #region Unity Lifecycle
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -41,4 +44,5 @@ public class GameEntry : MonoBehaviour
         GameClientManager.Instance.OnInit();
         GameClientManager.Instance.OnGameBegin();
     }
+    #endregion
 }

@@ -5,9 +5,12 @@ using UnityEngine.UI;
 // It only drives transitions and quit; no scene loading directly.
 public class UI_LoginPanel : MonoBehaviour
 {
+    #region Inspector
     [SerializeField] private Button _enterGameButton;
     [SerializeField] private Button _quitButton;
+    #endregion
 
+    #region Unity Lifecycle
     private void Awake()
     {
         if (_enterGameButton != null)
@@ -25,7 +28,9 @@ public class UI_LoginPanel : MonoBehaviour
         if (_quitButton != null)
             _quitButton.onClick.RemoveListener(OnClickQuit);
     }
+    #endregion
 
+    #region Private Methods
     private void OnClickEnterGame()
     {
         Debug.Log("[LoginUI] Enter Game clicked");
@@ -42,4 +47,5 @@ public class UI_LoginPanel : MonoBehaviour
         Application.Quit();
 #endif
     }
+    #endregion
 }

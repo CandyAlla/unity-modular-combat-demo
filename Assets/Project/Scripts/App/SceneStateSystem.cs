@@ -16,11 +16,14 @@ public enum SceneStateId
 // Transition logging keeps the Map_GameEntry -> Map_LoginScene path visible.
 public class SceneStateSystem
 {
+    #region Fields
     private readonly Dictionary<SceneStateId, ISceneManager> _managers = new Dictionary<SceneStateId, ISceneManager>();
 
     private SceneStateId _currentId = SceneStateId.GameEntry;
     private ISceneManager _currentManager;
+    #endregion
 
+    #region Public Methods
     public void RegisterSceneManager(ISceneManager manager)
     {
         if (manager == null)
@@ -77,7 +80,9 @@ public class SceneStateSystem
 
         Debug.Log($"[SceneStateSystem] Entered state: {_currentId}");
     }
+    #endregion
 
+    #region Private Methods
     private string ResolveSceneName(SceneStateId target)
     {
         switch (target)
@@ -92,4 +97,5 @@ public class SceneStateSystem
                 return null;
         }
     }
+    #endregion
 }
