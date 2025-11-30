@@ -13,6 +13,7 @@ public class UI_BattlePanel : MonoBehaviour
     [SerializeField] private Button _startBattleButton;
     [SerializeField] private MPRoomManager _roomManager;
     [SerializeField] private TMP_Text _timerText;
+    [SerializeField] private TMP_Text _startButtonLabel;
     #endregion
 
     #region Unity Lifecycle
@@ -26,6 +27,11 @@ public class UI_BattlePanel : MonoBehaviour
 
         if (_roomManager == null)
             _roomManager = FindObjectOfType<MPRoomManager>();
+
+        if (_startButtonLabel == null && _startBattleButton != null)
+            _startButtonLabel = _startBattleButton.GetComponentInChildren<TMP_Text>();
+
+        UpdateStartButtonLabel();
     }
 
     private void OnDestroy()
@@ -40,6 +46,7 @@ public class UI_BattlePanel : MonoBehaviour
     private void Update()
     {
         UpdateTimer();
+        UpdateStartButtonLabel();
     }
     #endregion
 
@@ -67,20 +74,65 @@ public class UI_BattlePanel : MonoBehaviour
     private void OnClickStartBattle()
     {
         Debug.Log("[BattleUI] Start Battle clicked");
-        if (_roomManager != null)
+        if (_roomManager == null)
         {
-            _roomManager.StartBattle();
+            Debug.LogWarning("[BattleUI] MPRoomManager not found; cannot control battle.");
+            return;
         }
-        else
+
+        switch (_roomManager.State)
         {
-            Debug.LogWarning("[BattleUI] MPRoomManager not found; cannot start battle.");
+            case MPRoomManager.RoomState.NotStarted:
+                _roomManager.StartBattle();
+                break;
+            case MPRoomManager.RoomState.Running:
+                _roomManager.PauseBattle();
+                break;
+            case MPRoomManager.RoomState.Paused:
+                _roomManager.ResumeBattle();
+                break;
+            case MPRoomManager.RoomState.Finished:
+                Debug.LogWarning("[BattleUI] Battle already finished; start button disabled.");
+                break;
         }
+
+        UpdateStartButtonLabel();
     }
 
     private void OnClickExitBattle()
     {
         Debug.Log("[BattleUI] Exit Battle clicked");
         GameClientManager.Instance.SetTransition(SceneStateId.Login);
+    }
+
+    private void UpdateStartButtonLabel()
+    {
+        if (_startButtonLabel == null)
+        {
+            return;
+        }
+
+        if (_roomManager == null)
+        {
+            _startButtonLabel.text = "Start";
+            return;
+        }
+
+        switch (_roomManager.State)
+        {
+            case MPRoomManager.RoomState.NotStarted:
+                _startButtonLabel.text = "Start";
+                break;
+            case MPRoomManager.RoomState.Running:
+                _startButtonLabel.text = "Pause";
+                break;
+            case MPRoomManager.RoomState.Paused:
+                _startButtonLabel.text = "Resume";
+                break;
+            case MPRoomManager.RoomState.Finished:
+                _startButtonLabel.text = "Finished";
+                break;
+        }
     }
     #endregion
 }

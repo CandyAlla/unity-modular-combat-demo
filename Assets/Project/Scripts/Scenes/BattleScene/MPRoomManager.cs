@@ -10,6 +10,7 @@ public class MPRoomManager : MonoBehaviour
     {
         NotStarted,
         Running,
+        Paused,
         Finished
     }
     #endregion
@@ -75,10 +76,40 @@ public class MPRoomManager : MonoBehaviour
             return;
         }
 
+        if (_state == RoomState.Finished)
+        {
+            Debug.LogWarning("[MPRoomManager] StartBattle ignored: battle already finished.");
+            return;
+        }
+
         _state = RoomState.Running;
         _elapsedTime = 0f;
         _lastProcessedSecond = -1;
         Debug.Log("[MPRoomManager] Battle started.");
+    }
+
+    public void PauseBattle()
+    {
+        if (_state != RoomState.Running)
+        {
+            Debug.LogWarning($"[MPRoomManager] PauseBattle ignored in state {_state}.");
+            return;
+        }
+
+        _state = RoomState.Paused;
+        Debug.Log("[MPRoomManager] Battle paused.");
+    }
+
+    public void ResumeBattle()
+    {
+        if (_state != RoomState.Paused)
+        {
+            Debug.LogWarning($"[MPRoomManager] ResumeBattle ignored in state {_state}.");
+            return;
+        }
+
+        _state = RoomState.Running;
+        Debug.Log("[MPRoomManager] Battle resumed.");
     }
 
     public void EndBattle()
