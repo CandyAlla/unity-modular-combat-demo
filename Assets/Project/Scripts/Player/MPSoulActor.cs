@@ -1,32 +1,29 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-// MPSoulActor represents the local player actor with basic health and hooks for controls.
-// Movement/rotation and combat are stubbed for now; focus on lifecycle and health API.
-public class MPSoulActor : MonoBehaviour
+// MPSoulActor represents the local player actor with basic health and input-driven movement.
+// It derives from MPCharacterSoulActorBase to share damage/death flow with NPCs.
+public class MPSoulActor : MPCharacterSoulActorBase
 {
     #region Inspector
-    public int MaxHp = 100;
-    public int CurrentHp = 100;
     [SerializeField] private float _moveSpeed = 5f;
     [SerializeField] private MPRoomManager _roomManager;
     #endregion
 
     #region Fields
-    private bool _isDead;
     private GameInput _input;
     private Vector2 _moveInput;
+    private bool _canControl = true;
     #endregion
 
     #region Unity Lifecycle
-    private void Awake()
+    protected override void Awake()
     {
+        base.Awake();
         if (_roomManager == null)
         {
             _roomManager = FindObjectOfType<MPRoomManager>();
         }
-
-        CurrentHp = MaxHp;
 
         _input = new GameInput();
         _input.Player.SetCallbacks(new PlayerActions(this));
@@ -34,6 +31,7 @@ public class MPSoulActor : MonoBehaviour
 
     private void OnEnable()
     {
+        base.OnEnable();
         _input?.Enable();
     }
 
@@ -42,71 +40,58 @@ public class MPSoulActor : MonoBehaviour
         _input?.Disable();
     }
 
-    private void Update()
+    protected override void Update()
     {
-        if (_isDead)
-        {
-            return;
-        }
-
         if (_roomManager != null && _roomManager.State != MPRoomManager.RoomState.Running)
         {
             return;
         }
 
-        HandleMovement();
+        base.Update();
     }
 
-    private void OnDestroy()
+    protected override void OnDestroy()
     {
         _input?.Dispose();
     }
     #endregion
 
-    #region Public Methods
-    public void TakeDamage(int amount)
+    #region Private Methods
+    protected override void OnInitActor()
     {
-        if (_isDead)
+        _isPlayer = true;
+        MaxHp = MaxHp <= 0 ? 100 : MaxHp;
+    }
+
+    protected override void OnUpdatePlayerMovement(float deltaTime)
+    {
+        if (!_canControl)
         {
             return;
         }
 
-        CurrentHp = Mathf.Clamp(CurrentHp - Mathf.Max(0, amount), 0, MaxHp);
-        if (CurrentHp <= 0)
-        {
-            Die();
-        }
-    }
-    #endregion
-
-    #region Private Methods
-    private void HandleMovement()
-    {
         var inputDir = new Vector3(_moveInput.x, 0f, _moveInput.y);
 
         if (inputDir.sqrMagnitude > 0.001f)
         {
             var worldDir = inputDir.normalized;
-            transform.position += worldDir * (_moveSpeed * Time.deltaTime);
+            transform.position += worldDir * (_moveSpeed * deltaTime);
             transform.rotation = Quaternion.LookRotation(worldDir, Vector3.up);
         }
     }
 
-    private void Die()
+    protected override void OnBeforeDeath()
     {
-        if (_isDead)
-        {
-            return;
-        }
-
-        _isDead = true;
-        Debug.Log("[MPSoulActor] Player died");
-
         if (_roomManager != null)
         {
             _roomManager.OnPlayerDead();
         }
 
+        _canControl = false;
+    }
+
+    protected override void OnAfterDeath()
+    {
         gameObject.SetActive(false);
     }
 

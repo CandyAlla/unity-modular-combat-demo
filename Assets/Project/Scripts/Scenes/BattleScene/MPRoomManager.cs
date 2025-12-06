@@ -51,7 +51,7 @@ public class MPRoomManager : MonoBehaviour
             _runtimeActorsRoot = PoolManager.Inst.RuntimeActorsRoot;
         }
 
-        PoolManager.InitPoolItem<DummyEnemy>(_enemyPoolKey, _dummyEnemyPrefab, 0);
+        PoolManager.InitPoolItem<MPNpcSoulActor>(_enemyPoolKey, _dummyEnemyPrefab, 0);
 
         if (_chapterInfo == null)
         {
@@ -222,6 +222,17 @@ public class MPRoomManager : MonoBehaviour
         _aliveEnemyCount = Mathf.Max(0, _aliveEnemyCount - 1);
     }
 
+    public void OnEnemySpawned(MPNpcSoulActor enemy)
+    {
+        _aliveEnemyCount++;
+    }
+
+    public void OnEnemyDead(MPNpcSoulActor actor)
+    {
+        RegisterEnemyDestroyed();
+        Debug.Log("[MPRoomManager] Enemy dead reported.");
+    }
+
     public void OnPlayerDead()
     {
         if (_state != RoomState.Running)
@@ -294,7 +305,7 @@ public class MPRoomManager : MonoBehaviour
         if (PoolManager.Inst != null)
         {
             var parent = PoolManager.Inst.RuntimeActorsRoot != null ? PoolManager.Inst.RuntimeActorsRoot : _runtimeActorsRoot;
-            enemy = PoolManager.SpawnItemFromPool<DummyEnemy>(_enemyPoolKey, position, Quaternion.identity)?.gameObject;
+            enemy = PoolManager.SpawnItemFromPool<MPNpcSoulActor>(_enemyPoolKey, position, Quaternion.identity)?.gameObject;
             if (enemy != null && parent != null && enemy.transform.parent != parent)
             {
                 enemy.transform.SetParent(parent, true);
@@ -323,7 +334,25 @@ public class MPRoomManager : MonoBehaviour
             enemy.transform.SetParent(_runtimeActorsRoot, true);
         }
 
-        RegisterSpawnedEnemy();
+        var npc = enemy.GetComponent<MPNpcSoulActor>();
+        if (npc != null)
+        {
+            npc.Init(this, _localPlayer);
+
+            var agent = npc.GetComponent<UnityEngine.AI.NavMeshAgent>();
+            if (agent != null)
+            {
+                agent.Warp(position);
+                agent.enabled = true;
+            }
+
+            npc.transform.position = position;
+            OnEnemySpawned(npc);
+        }
+        else
+        {
+            Debug.LogWarning("[MPRoomManager] Spawned enemy missing MPNpcSoulActor component.");
+        }
     }
     #endregion
 }
