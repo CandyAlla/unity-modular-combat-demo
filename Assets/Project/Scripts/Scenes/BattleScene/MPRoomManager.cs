@@ -31,6 +31,7 @@ public class MPRoomManager : MonoBehaviour
     private int _lastProcessedSecond = -1;
     private int _durationSeconds;
     private int _aliveEnemyCount;
+    [SerializeField] private MPSoulActor _localPlayer;
     #endregion
 
     #region Properties
@@ -45,6 +46,11 @@ public class MPRoomManager : MonoBehaviour
     {
         _stageId = stageId;
         _chapterInfo = DataCtrl.Instance.GetStageInfo(_stageId);
+        if (_runtimeActorsRoot == null && PoolManager.Inst != null)
+        {
+            _runtimeActorsRoot = PoolManager.Inst.RuntimeActorsRoot;
+        }
+
         PoolManager.InitPoolItem<DummyEnemy>(_enemyPoolKey, _dummyEnemyPrefab, 0);
 
         if (_chapterInfo == null)
@@ -72,6 +78,11 @@ public class MPRoomManager : MonoBehaviour
         _elapsedTime = 0f;
         _lastProcessedSecond = -1;
         _aliveEnemyCount = 0;
+
+        if (_localPlayer == null)
+        {
+            _localPlayer = FindObjectOfType<MPSoulActor>();
+        }
 
         Debug.Log($"[MPRoomManager] Initialized stage {_stageId} with duration {_durationSeconds}s and {_secondToWaves.Count} wave times.");
     }
@@ -210,6 +221,17 @@ public class MPRoomManager : MonoBehaviour
     {
         _aliveEnemyCount = Mathf.Max(0, _aliveEnemyCount - 1);
     }
+
+    public void OnPlayerDead()
+    {
+        if (_state != RoomState.Running)
+        {
+            return;
+        }
+
+        Debug.Log("[MPRoomManager] Player dead, ending battle (fail).");
+        EndBattle();
+    }
     private Vector3 ResolveSpawnPosition(NPCSpawnData wave)
     {
         if (wave != null && wave.SpawnPosition != Vector3.zero)
@@ -271,7 +293,12 @@ public class MPRoomManager : MonoBehaviour
         GameObject enemy = null;
         if (PoolManager.Inst != null)
         {
+            var parent = PoolManager.Inst.RuntimeActorsRoot != null ? PoolManager.Inst.RuntimeActorsRoot : _runtimeActorsRoot;
             enemy = PoolManager.SpawnItemFromPool<DummyEnemy>(_enemyPoolKey, position, Quaternion.identity)?.gameObject;
+            if (enemy != null && parent != null && enemy.transform.parent != parent)
+            {
+                enemy.transform.SetParent(parent, true);
+            }
         }
         else
         {
