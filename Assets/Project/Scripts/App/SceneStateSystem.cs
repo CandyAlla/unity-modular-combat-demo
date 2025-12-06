@@ -55,6 +55,7 @@ public class SceneStateSystem
         if (_currentManager != null)
         {
             Debug.Log($"[SceneStateSystem] Leaving {_currentId}");
+            PoolManager.Inst?.DoBeforeLeavingScene();
             _currentManager.DoBeforeLeaving();
         }
 
@@ -72,6 +73,8 @@ public class SceneStateSystem
         {
             await Task.Yield();
         }
+
+        PoolManager.Inst?.DoBeforeEnteringScene(sceneName);
 
         _currentId = target;
         _currentManager = nextManager;

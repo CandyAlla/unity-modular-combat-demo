@@ -29,6 +29,7 @@ public class GameClientManager : MonoBehaviour
     #region Public Methods
     public void OnInit()
     {
+        PoolManager.CreatePoolManager();
         // Scene State System setup
         _sceneStateSystem = new SceneStateSystem();
         _dataCtrl = DataCtrl.Instance;

@@ -1007,6 +1007,7 @@ MonoBehaviour:
   _startBattleButton: {fileID: 500364445}
   _roomManager: {fileID: 0}
   _timerText: {fileID: 1970125883}
+  _startButtonLabel: {fileID: 598321300}
 --- !u!1 &1450710311
 GameObject:
   m_ObjectHideFlags: 0
@@ -1037,6 +1038,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _stageId: 1
+  _dummyEnemyPrefab: {fileID: 7546300052191640917, guid: bb72b0a72115649c59c421592472133d, type: 3}
+  _spawnPoints: []
+  _runtimeActorsRoot: {fileID: 2141540130}
+  _enemyPoolKey: Enemy_Dummy
 --- !u!4 &1450710313
 Transform:
   m_ObjectHideFlags: 0
@@ -1217,6 +1222,37 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2141540129
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2141540130}
+  m_Layer: 0
+  m_Name: RuntimeActorsRoot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2141540130
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2141540129}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 5, y: 0, z: 5}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -1227,3 +1263,4 @@ SceneRoots:
   - {fileID: 1146101917}
   - {fileID: 677902632}
   - {fileID: 1450710313}
+  - {fileID: 2141540130}

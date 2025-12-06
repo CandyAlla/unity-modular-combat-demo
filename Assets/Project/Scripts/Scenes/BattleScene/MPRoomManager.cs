@@ -17,6 +17,10 @@ public class MPRoomManager : MonoBehaviour
 
     #region Inspector
     [SerializeField] private int _stageId = 1;
+    [SerializeField] private GameObject _dummyEnemyPrefab;
+    [SerializeField] private Transform[] _spawnPoints;
+    [SerializeField] private Transform _runtimeActorsRoot;
+    [SerializeField] private string _enemyPoolKey = "Enemy_Dummy";
     #endregion
 
     #region Fields
@@ -26,12 +30,14 @@ public class MPRoomManager : MonoBehaviour
     private float _elapsedTime;
     private int _lastProcessedSecond = -1;
     private int _durationSeconds;
+    private int _aliveEnemyCount;
     #endregion
 
     #region Properties
     public RoomState State => _state;
     public float ElapsedTime => _elapsedTime;
     public int DurationSeconds => _durationSeconds;
+    public int AliveEnemyCount => _aliveEnemyCount;
     #endregion
 
     #region Public Methods
@@ -39,6 +45,7 @@ public class MPRoomManager : MonoBehaviour
     {
         _stageId = stageId;
         _chapterInfo = DataCtrl.Instance.GetStageInfo(_stageId);
+        PoolManager.InitPoolItem<DummyEnemy>(_enemyPoolKey, _dummyEnemyPrefab, 0);
 
         if (_chapterInfo == null)
         {
@@ -64,6 +71,7 @@ public class MPRoomManager : MonoBehaviour
         _state = RoomState.NotStarted;
         _elapsedTime = 0f;
         _lastProcessedSecond = -1;
+        _aliveEnemyCount = 0;
 
         Debug.Log($"[MPRoomManager] Initialized stage {_stageId} with duration {_durationSeconds}s and {_secondToWaves.Count} wave times.");
     }
@@ -163,9 +171,132 @@ public class MPRoomManager : MonoBehaviour
         {
             foreach (var wave in waves)
             {
-                Debug.Log($"[MPRoomManager] Second {second}: spawn {wave.NpcCount}x NPC {wave.NpcId} (SpawnPointIndex {wave.SpawnPointIndex}, Pos {wave.SpawnPosition}).");
+                HandleWaveSpawn(wave, second);
             }
         }
+    }
+
+    private void HandleWaveSpawn(NPCSpawnData wave, int second)
+    {
+        var basePos = ResolveSpawnPosition(wave);
+        Debug.Log($"[MPRoomManager] Second {second}: spawn {wave.NpcCount}x NPC {wave.NpcId} (SpawnPointIndex {wave.SpawnPointIndex}, BasePos {basePos}). Prefab={_dummyEnemyPrefab?.name ?? "None"}");
+
+        SpawnWave(wave, basePos);
+    }
+
+    private void SpawnWave(NPCSpawnData wave, Vector3 basePos)
+    {
+        if (_dummyEnemyPrefab == null || wave == null)
+        {
+            Debug.LogWarning("[MPRoomManager] SpawnWave skipped: missing prefab or wave data.");
+            return;
+        }
+
+        var spawnCount = Mathf.Max(0, wave.NpcCount);
+
+        for (var i = 0; i < spawnCount; i++)
+        {
+            var position = ResolveSpawnPositionForSpawn(basePos, wave, i);
+            SpawnEnemy(position);
+        }
+    }
+
+    private void RegisterSpawnedEnemy()
+    {
+        _aliveEnemyCount += 1;
+    }
+
+    public void RegisterEnemyDestroyed()
+    {
+        _aliveEnemyCount = Mathf.Max(0, _aliveEnemyCount - 1);
+    }
+    private Vector3 ResolveSpawnPosition(NPCSpawnData wave)
+    {
+        if (wave != null && wave.SpawnPosition != Vector3.zero)
+        {
+            return wave.SpawnPosition;
+        }
+
+        if (_spawnPoints != null &&
+            wave != null &&
+            wave.SpawnPointIndex >= 0 &&
+            wave.SpawnPointIndex < _spawnPoints.Length &&
+            _spawnPoints[wave.SpawnPointIndex] != null)
+        {
+            return _spawnPoints[wave.SpawnPointIndex].position;
+        }
+
+        return Vector3.zero;
+    }
+
+    private Vector3 ResolveSpawnPositionByIndex(NPCSpawnData wave, int iteration)
+    {
+        if (_spawnPoints != null &&
+            wave != null &&
+            wave.SpawnPointIndex >= 0 &&
+            wave.SpawnPointIndex < _spawnPoints.Length &&
+            _spawnPoints[wave.SpawnPointIndex] != null)
+        {
+            return _spawnPoints[wave.SpawnPointIndex].position;
+        }
+
+        // Simple fallback: cycle through available spawn points.
+        if (_spawnPoints != null && _spawnPoints.Length > 0)
+        {
+            var idx = iteration % _spawnPoints.Length;
+            return _spawnPoints[idx] != null ? _spawnPoints[idx].position : Vector3.zero;
+        }
+
+        return Vector3.zero;
+    }
+
+    private Vector3 ResolveSpawnPositionForSpawn(Vector3 basePos, NPCSpawnData wave, int iteration)
+    {
+        var position = basePos;
+
+        if (position == Vector3.zero)
+        {
+            position = ResolveSpawnPositionByIndex(wave, iteration);
+        }
+
+        var radius = Random.Range(0.5f, 1f);
+        var angle = Random.Range(0f, Mathf.PI * 2f);
+        var offset = new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius);
+
+        return position + offset;
+    }
+
+    private void SpawnEnemy(Vector3 position)
+    {
+        GameObject enemy = null;
+        if (PoolManager.Inst != null)
+        {
+            enemy = PoolManager.SpawnItemFromPool<DummyEnemy>(_enemyPoolKey, position, Quaternion.identity)?.gameObject;
+        }
+        else
+        {
+            if (_dummyEnemyPrefab == null)
+            {
+                Debug.LogWarning("[MPRoomManager] No enemy prefab assigned and no PoolManager available.");
+                return;
+            }
+
+            var parent = PoolManager.Inst != null ? PoolManager.Inst.RuntimeActorsRoot : _runtimeActorsRoot;
+            enemy = Instantiate(_dummyEnemyPrefab, position, Quaternion.identity, parent);
+        }
+
+        if (enemy == null)
+        {
+            Debug.LogWarning("[MPRoomManager] Failed to spawn enemy.");
+            return;
+        }
+
+        if (_runtimeActorsRoot != null && enemy.transform.parent != _runtimeActorsRoot)
+        {
+            enemy.transform.SetParent(_runtimeActorsRoot, true);
+        }
+
+        RegisterSpawnedEnemy();
     }
     #endregion
 }
