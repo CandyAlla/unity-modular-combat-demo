@@ -21,6 +21,7 @@ public class MPRoomManager : MonoBehaviour
     [SerializeField] private Transform[] _spawnPoints;
     [SerializeField] private Transform _runtimeActorsRoot;
     [SerializeField] private string _enemyPoolKey = "Enemy_Dummy";
+    [SerializeField] private MPCamManager _camManager;
     #endregion
 
     #region Fields
@@ -82,6 +83,17 @@ public class MPRoomManager : MonoBehaviour
         if (_localPlayer == null)
         {
             _localPlayer = FindObjectOfType<MPSoulActor>();
+        }
+
+        if (_camManager == null)
+        {
+            _camManager = MPCamManager.Inst != null ? MPCamManager.Inst : FindObjectOfType<MPCamManager>();
+        }
+
+        if (_camManager != null && _localPlayer != null)
+        {
+            _camManager.OnInitCam(_localPlayer);
+            _localPlayer.OnSetMPCamMgr(_camManager);
         }
 
         Debug.Log($"[MPRoomManager] Initialized stage {_stageId} with duration {_durationSeconds}s and {_secondToWaves.Count} wave times.");
@@ -220,6 +232,11 @@ public class MPRoomManager : MonoBehaviour
     public void RegisterEnemyDestroyed()
     {
         _aliveEnemyCount = Mathf.Max(0, _aliveEnemyCount - 1);
+    }
+
+    public void OnSetMPCamManager(MPCamManager camMgr)
+    {
+        _camManager = camMgr;
     }
 
     public void OnEnemySpawned(MPNpcSoulActor enemy)

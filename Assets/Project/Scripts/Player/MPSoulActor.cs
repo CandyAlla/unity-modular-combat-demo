@@ -14,6 +14,7 @@ public class MPSoulActor : MPCharacterSoulActorBase
     private GameInput _input;
     private Vector2 _moveInput;
     private bool _canControl = true;
+    private MPCamManager _camManager;
     #endregion
 
     #region Unity Lifecycle
@@ -93,6 +94,21 @@ public class MPSoulActor : MPCharacterSoulActorBase
     protected override void OnAfterDeath()
     {
         gameObject.SetActive(false);
+    }
+
+    public void OnSetMPCamMgr(MPCamManager camMgr)
+    {
+        _camManager = camMgr;
+    }
+
+    public Camera GetMainCamera()
+    {
+        return _camManager != null ? _camManager.MainCamera : Camera.main;
+    }
+
+    public MPCamManager GetMPCamManager()
+    {
+        return _camManager;
     }
 
     private void OnMove(InputAction.CallbackContext context)
