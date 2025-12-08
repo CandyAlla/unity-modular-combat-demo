@@ -202,13 +202,7 @@ public class MPRoomManager : MonoBehaviour
         _isPaused = !_isPaused;
         Debug.Log($"[MPRoomManager] Pause toggled: {_isPaused}");
 
-        foreach (var npc in _npcs)
-        {
-            if (npc != null)
-            {
-                npc.SetPaused(_isPaused);
-            }
-        }
+        SetNpcsPaused(_isPaused);
     }
 
     public void RegisterEnemyDestroyed()
@@ -286,6 +280,7 @@ public class MPRoomManager : MonoBehaviour
         _isLevelRunning = false;
         _isWin = isWin;
         _isPaused = true;
+        SetNpcsPaused(true);
         OnLevelOver(isWin);
     }
 
@@ -598,6 +593,17 @@ public class MPRoomManager : MonoBehaviour
         }
 
         _npcs.Remove(npc);
+    }
+
+    private void SetNpcsPaused(bool paused)
+    {
+        foreach (var npc in _npcs)
+        {
+            if (npc != null)
+            {
+                npc.SetPaused(paused);
+            }
+        }
     }
     #endregion
 }
