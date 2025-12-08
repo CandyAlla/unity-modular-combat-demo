@@ -63,7 +63,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 98f6c1ff5390147448a5a1b7c73bd362, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -103,6 +103,7 @@ MonoBehaviour:
   _poolKey: Enemy_Dummy
   AttackDamage: 10
   AttackInterval: 1
+  AttackRange: 1.2
 --- !u!195 &-7215355684187928407
 NavMeshAgent:
   m_ObjectHideFlags: 0
