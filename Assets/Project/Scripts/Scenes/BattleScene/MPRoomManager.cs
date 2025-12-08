@@ -13,6 +13,14 @@ public class MPRoomManager : MonoBehaviour
         Paused,
         Finished
     }
+
+    private enum LevelStatus
+    {
+        Idle,
+        Running,
+        Paused,
+        Over
+    }
     #endregion
 
     #region Inspector
@@ -23,6 +31,8 @@ public class MPRoomManager : MonoBehaviour
     [SerializeField] private string _enemyPoolKey = "Enemy_Dummy";
     [SerializeField] private MPCamManager _camManager;
     [SerializeField] private UI_BattleSettlement _battleSettlementUI;
+    [Header("Fallback Prefabs")]
+    [SerializeField] private GameObject _playerPrefab;
     #endregion
 
     #region Fields
@@ -40,8 +50,7 @@ public class MPRoomManager : MonoBehaviour
     private Quaternion _playerSpawnRotation;
     [Header("Level Timing")]
     [SerializeField] private LevelConfig _levelConfig;
-    private bool _isLevelRunning;
-    private bool _isLevelOver;
+    private LevelStatus _levelStatus = LevelStatus.Idle;
     private bool _isWin;
     private float _currentTime;
     private int _currentSecond;
@@ -53,8 +62,8 @@ public class MPRoomManager : MonoBehaviour
     public RoomState State => _state;
     public int AliveEnemyCount => _aliveEnemyCount;
     public bool IsPaused => _isPaused;
-    public bool IsLevelRunning => _isLevelRunning;
-    public bool IsLevelOver => _isLevelOver;
+    public bool IsLevelRunning => _levelStatus == LevelStatus.Running;
+    public bool IsLevelOver => _levelStatus == LevelStatus.Over;
     public System.Action<int> OnLevelSecondTick;
     #endregion
 
@@ -146,7 +155,7 @@ public class MPRoomManager : MonoBehaviour
 
             if (prefab != null)
             {
-                PoolManager.InitPoolItem<MPNpcSoulActor>(poolKey, prefab, 2);
+                PoolManager.InitPoolItem<MPNpcSoulActor>(poolKey, prefab, _levelConfig != null ? Mathf.Max(0, _levelConfig.Duration / 10) : 2);
             }
             else
             {
@@ -157,8 +166,7 @@ public class MPRoomManager : MonoBehaviour
         _state = RoomState.NotStarted;
         _aliveEnemyCount = 0;
         _isPaused = false;
-        _isLevelRunning = false;
-        _isLevelOver = false;
+        _levelStatus = LevelStatus.Idle;
         _isWin = false;
         _currentTime = 0f;
         _currentSecond = 0;
@@ -170,7 +178,11 @@ public class MPRoomManager : MonoBehaviour
             _localPlayer = FindObjectOfType<MPSoulActor>();
             if (_localPlayer == null)
             {
-                Debug.LogError("[MPRoomManager] Local player not found. Spawning logic will not proceed.");
+                _localPlayer = SpawnFallbackPlayer();
+                if (_localPlayer == null)
+                {
+                    Debug.LogError("[MPRoomManager] Local player not found. Spawning logic will not proceed.");
+                }
             }
         }
 
@@ -216,6 +228,7 @@ public class MPRoomManager : MonoBehaviour
 
         _state = RoomState.Running;
         _isPaused = false;
+        _levelStatus = LevelStatus.Running;
         BeginTimeCounting();
         Debug.Log("[MPRoomManager] Battle started.");
     }
@@ -229,6 +242,7 @@ public class MPRoomManager : MonoBehaviour
         }
 
         _state = RoomState.Paused;
+        _levelStatus = LevelStatus.Paused;
         TogglePause();
         Debug.Log("[MPRoomManager] Battle paused.");
     }
@@ -242,6 +256,7 @@ public class MPRoomManager : MonoBehaviour
         }
 
         _state = RoomState.Running;
+        _levelStatus = LevelStatus.Running;
         TogglePause();
         Debug.Log("[MPRoomManager] Battle resumed.");
     }
@@ -304,8 +319,7 @@ public class MPRoomManager : MonoBehaviour
 
     public void BeginTimeCounting()
     {
-        _isLevelRunning = true;
-        _isLevelOver = false;
+        _levelStatus = LevelStatus.Running;
         _isWin = false;
         _currentTime = 0f;
         _currentSecond = 0;
@@ -319,14 +333,13 @@ public class MPRoomManager : MonoBehaviour
 
     private void EndTimeCounting(bool isWin)
     {
-        if (_isLevelOver)
+        if (_levelStatus == LevelStatus.Over)
         {
             return;
         }
 
         _state = RoomState.Finished;
-        _isLevelOver = true;
-        _isLevelRunning = false;
+        _levelStatus = LevelStatus.Over;
         _isWin = isWin;
         _isPaused = true;
         SetNpcsPaused(true);
@@ -357,8 +370,7 @@ public class MPRoomManager : MonoBehaviour
 
         // Reset level state flags and timers
         _isPaused = false;
-        _isLevelOver = false;
-        _isLevelRunning = false;
+        _levelStatus = LevelStatus.Running;
         _isWin = false;
         _currentTime = 0f;
         _currentSecond = 0;
@@ -438,7 +450,16 @@ public class MPRoomManager : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning("[MPRoomManager] MPCamManager not found on restart.");
+            _camManager = SpawnFallbackCamera();
+            if (_camManager == null)
+            {
+                Debug.LogWarning("[MPRoomManager] MPCamManager not found on restart.");
+            }
+            else
+            {
+                _camManager.OnInitCam(_localPlayer);
+                _localPlayer.OnSetMPCamMgr(_camManager);
+            }
         }
     }
     #endregion
@@ -446,7 +467,7 @@ public class MPRoomManager : MonoBehaviour
     #region Unity Lifecycle Updates
     private void Update()
     {
-        if (_state != RoomState.Running || _isPaused || !_isLevelRunning || _isLevelOver)
+        if (_state != RoomState.Running || _isPaused || _levelStatus != LevelStatus.Running)
         {
             return;
         }
@@ -475,7 +496,7 @@ public class MPRoomManager : MonoBehaviour
         OnLevelSecondTick?.Invoke(second);
         OnSecondTick(second);
 
-        if (!_isLevelOver && _levelConfig != null && _currentTime >= _levelConfig.Duration)
+        if (_levelStatus == LevelStatus.Running && _levelConfig != null && _currentTime >= _levelConfig.Duration)
         {
             var playerAlive = _localPlayer != null && !_localPlayer.IsDead;
             if (playerAlive)
@@ -752,6 +773,45 @@ public class MPRoomManager : MonoBehaviour
             }
         }
         _npcs.Clear();
+    }
+
+    private MPSoulActor SpawnFallbackPlayer()
+    {
+        if (_playerPrefab == null)
+        {
+            Debug.LogError("[MPRoomManager] No player prefab assigned for fallback spawn.");
+            return null;
+        }
+
+        var parent = _runtimeActorsRoot != null ? _runtimeActorsRoot : transform;
+        var obj = Instantiate(_playerPrefab, _playerSpawnPosition, _playerSpawnRotation, parent);
+        var actor = obj.GetComponent<MPSoulActor>();
+        if (actor == null)
+        {
+            Debug.LogError("[MPRoomManager] Fallback player prefab missing MPSoulActor component.");
+            return null;
+        }
+
+        return actor;
+    }
+
+    private MPCamManager SpawnFallbackCamera()
+    {
+        var cam = Camera.main;
+        if (cam == null)
+        {
+            var camObj = new GameObject("Main Camera");
+            cam = camObj.AddComponent<Camera>();
+            cam.tag = "MainCamera";
+        }
+
+        var mgr = cam.GetComponent<MPCamManager>();
+        if (mgr == null)
+        {
+            mgr = cam.gameObject.AddComponent<MPCamManager>();
+        }
+
+        return mgr;
     }
     #endregion
 }

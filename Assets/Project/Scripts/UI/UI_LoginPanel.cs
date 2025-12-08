@@ -13,6 +13,7 @@ public class UI_LoginPanel : UIBase
     [SerializeField] private Transform _stageListRoot;
     [SerializeField] private Button _stageItemTemplate;
     [SerializeField] private TMP_Text _stageDisplayText;
+    [SerializeField] private TMP_Text _diagnosticText;
     #endregion
 
     #region Fields
@@ -32,6 +33,8 @@ public class UI_LoginPanel : UIBase
 
         SyncSelection();
         BuildStageList();
+        UpdateDiagnostics();
+        UpdateEnterButtonState(false);
     }
 
     private void OnDestroy()
@@ -54,9 +57,23 @@ public class UI_LoginPanel : UIBase
     #endregion
 
     #region Private Methods
+    protected override void OnOpenUI()
+    {
+        base.OnOpenUI();
+        if (_enterGameButton != null)
+        {
+            SetDefaultSelectable(_enterGameButton);
+        }
+    }
+
     private void OnClickEnterGame()
     {
         Debug.Log("[LoginUI] Enter Game clicked");
+        if (DataCtrl.Instance.GetStageInfo(_selectedStageId) == null)
+        {
+            Debug.LogWarning("[LoginUI] Cannot enter game: no valid stage selected.");
+            return;
+        }
         GameClientManager.Instance.SetTransition(SceneStateId.Battle);
     }
 
@@ -87,6 +104,8 @@ public class UI_LoginPanel : UIBase
             _stageDisplayText.text = string.IsNullOrEmpty(stageName) ? $"Stage {stageId}" : stageName;
         }
         Debug.Log($"[LoginUI] Stage selected: {stageName} (ID={stageId})");
+        UpdateDiagnostics();
+        UpdateEnterButtonState(true);
     }
 
     private void SyncSelection()
@@ -98,6 +117,7 @@ public class UI_LoginPanel : UIBase
         {
             _stageDisplayText.text = string.IsNullOrEmpty(displayName) ? $"Stage {_selectedStageId}" : displayName;
         }
+        UpdateEnterButtonState(!string.IsNullOrEmpty(displayName));
     }
 
     private void BuildStageList()
@@ -149,6 +169,24 @@ public class UI_LoginPanel : UIBase
             }
         }
         return string.Empty;
+    }
+
+    private void UpdateDiagnostics()
+    {
+        if (_diagnosticText == null)
+        {
+            return;
+        }
+
+        _diagnosticText.text = DataCtrl.Instance.GetDiagnostics();
+    }
+
+    private void UpdateEnterButtonState(bool enabled)
+    {
+        if (_enterGameButton != null)
+        {
+            _enterGameButton.interactable = enabled;
+        }
     }
     #endregion
 }

@@ -52,6 +52,15 @@ public class UI_BattlePanel : UIBase
     #endregion
 
     #region Private Methods
+    protected override void OnOpenUI()
+    {
+        base.OnOpenUI();
+        if (_startBattleButton != null)
+        {
+            SetDefaultSelectable(_startBattleButton);
+        }
+    }
+
     private void UpdateTimer()
     {
         if (_timerText == null)

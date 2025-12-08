@@ -92,6 +92,12 @@ public class DataCtrl
         _initialized = true;
     }
 
+    public void ReloadConfigs()
+    {
+        _initialized = false;
+        InitAllChapterInfos();
+    }
+
     public MainChapterInfo GetStageInfo(int stageId)
     {
         if (!_initialized)
@@ -126,6 +132,13 @@ public class DataCtrl
         }
 
         return new List<StageEntry>(_stageEntries);
+    }
+
+    public string GetDiagnostics()
+    {
+        var stageCount = _dicStageInfos.Count;
+        var prefabCount = _npcPrefabLookup.Count;
+        return $"Stages: {stageCount}, NPC prefabs: {prefabCount}";
     }
     #endregion
 

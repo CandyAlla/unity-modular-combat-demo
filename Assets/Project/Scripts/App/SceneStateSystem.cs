@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -37,12 +38,12 @@ public class SceneStateSystem
         Debug.Log($"[SceneStateSystem] Registered manager for {manager.Id}");
     }
 
-    public async void PerformTransition(SceneStateId target)
+    public async Task<bool> PerformTransition(SceneStateId target, int timeoutMs = 30000, CancellationToken externalToken = default)
     {
         if (_isTransitioning)
         {
             Debug.LogWarning($"[SceneStateSystem] Transition already in progress; requested {target} ignored.");
-            return;
+            return false;
         }
 
         Debug.Log($"[SceneStateSystem] Begin transition: {_currentId} -> {target}");
@@ -50,13 +51,13 @@ public class SceneStateSystem
         if (target == _currentId)
         {
             Debug.Log($"[SceneStateSystem] Already in target state: {target}, skipping.");
-            return;
+            return true;
         }
 
         if (!_managers.TryGetValue(target, out var nextManager))
         {
             Debug.LogError($"[SceneStateSystem] No scene manager for target: {target}");
-            return;
+            return false;
         }
 
         if (_currentManager != null)
@@ -70,7 +71,7 @@ public class SceneStateSystem
         if (string.IsNullOrEmpty(sceneName))
         {
             Debug.LogError($"[SceneStateSystem] Unsupported target state: {target}");
-            return;
+            return false;
         }
 
         _isTransitioning = true;
@@ -82,12 +83,18 @@ public class SceneStateSystem
         {
             Debug.LogError($"[SceneStateSystem] Failed to start loading scene: {sceneName}");
             _isTransitioning = false;
-            return;
+            return false;
+        }
+
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(externalToken);
+        if (timeoutMs > 0)
+        {
+            cts.CancelAfter(timeoutMs);
         }
 
         try
         {
-            while (!op.isDone)
+            while (!op.isDone && !cts.Token.IsCancellationRequested)
             {
                 await Task.Yield();
             }
@@ -96,7 +103,14 @@ public class SceneStateSystem
         {
             Debug.LogError($"[SceneStateSystem] Exception during scene load {sceneName}: {ex}");
             _isTransitioning = false;
-            return;
+            return false;
+        }
+
+        if (cts.IsCancellationRequested && !op.isDone)
+        {
+            Debug.LogError($"[SceneStateSystem] Scene load timeout/cancelled for {sceneName}");
+            _isTransitioning = false;
+            return false;
         }
 
         try
@@ -109,6 +123,7 @@ public class SceneStateSystem
             _currentManager.DoEntered();
 
             Debug.Log($"[SceneStateSystem] Entered state: {_currentId}");
+            return true;
         }
         finally
         {

@@ -61,10 +61,14 @@ public class GameClientManager : MonoBehaviour
         SetTransition(SceneStateId.Login);
     }
 
-    public void SetTransition(SceneStateId target)
+    public async void SetTransition(SceneStateId target)
     {
         Debug.Log($"[GameClientManager] SetTransition to {target}");
-        _sceneStateSystem.PerformTransition(target);
+        var success = await _sceneStateSystem.PerformTransition(target);
+        if (!success)
+        {
+            Debug.LogError($"[GameClientManager] Transition to {target} failed.");
+        }
     }
 
     public void SetSelectedStageId(int stageId)

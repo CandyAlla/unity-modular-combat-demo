@@ -10,6 +10,8 @@ using Cysharp.Threading.Tasks;
 public class UIBase : MonoBehaviour
 {
     #region Inspector
+    [Header("Identity")]
+    [SerializeField] private string _uiKey;
     [Header("Animation")]
     [SerializeField] private AnimationCurve _openCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
     [SerializeField] private AnimationCurve _closeCurve = AnimationCurve.EaseInOut(0, 1, 1, 0);
@@ -22,6 +24,10 @@ public class UIBase : MonoBehaviour
     [Header("Events")]
     [SerializeField] private UnityEvent _onOpenCompleted;
     [SerializeField] private UnityEvent _onCloseCompleted;
+    #endregion
+
+    #region Properties
+    public string UIKey => _uiKey;
     #endregion
 
     #region Fields
@@ -86,6 +92,14 @@ public class UIBase : MonoBehaviour
     #region Protected Hooks
     protected virtual void OnOpenUI() { }
     protected virtual void OnCloseUI() { }
+
+    protected void SetDefaultSelectable(Selectable selectable)
+    {
+        if (selectable != null)
+        {
+            _defaultSelectable = selectable;
+        }
+    }
     #endregion
 
     #region Private Methods

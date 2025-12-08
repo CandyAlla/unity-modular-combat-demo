@@ -59,6 +59,15 @@ public class UI_BattleSettlement : UIBase
     #endregion
 
     #region Private Methods
+    protected override void OnOpenUI()
+    {
+        base.OnOpenUI();
+        if (_retryButton != null)
+        {
+            SetDefaultSelectable(_retryButton);
+        }
+    }
+
     private void OnClickRetry()
     {
         Close();

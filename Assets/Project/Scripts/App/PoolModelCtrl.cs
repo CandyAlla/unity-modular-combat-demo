@@ -11,19 +11,19 @@ public class PoolModelCtrl : MonoBehaviour
         private readonly GameObject _prefab;
         private readonly Queue<GameObject> _pool = new Queue<GameObject>();
         private readonly Transform _defaultParent;
-        private readonly int _prefabGuid;
+        private readonly string _prefabKey;
 
         public ObjectPool(GameObject prefab, Transform defaultParent, int preload)
         {
             _prefab = prefab;
             _defaultParent = defaultParent;
-            _prefabGuid = prefab != null ? prefab.GetInstanceID() : 0;
+            _prefabKey = BuildPrefabKey(prefab);
             Preload(preload);
         }
 
         public bool PrefabGuidMatches(GameObject prefab)
         {
-            return prefab != null && prefab.GetInstanceID() == _prefabGuid;
+            return BuildPrefabKey(prefab) == _prefabKey;
         }
 
         public GameObject Get(Vector3 position, Quaternion rotation, Transform parentOverride = null)
@@ -93,6 +93,27 @@ public class PoolModelCtrl : MonoBehaviour
                 obj.SetActive(false);
                 _pool.Enqueue(obj);
             }
+        }
+
+        private static string BuildPrefabKey(GameObject prefab)
+        {
+            if (prefab == null)
+            {
+                return string.Empty;
+            }
+
+#if UNITY_EDITOR
+            var path = UnityEditor.AssetDatabase.GetAssetPath(prefab);
+            if (!string.IsNullOrEmpty(path))
+            {
+                var guid = UnityEditor.AssetDatabase.AssetPathToGUID(path);
+                if (!string.IsNullOrEmpty(guid))
+                {
+                    return guid;
+                }
+            }
+#endif
+            return prefab.name;
         }
     }
     #endregion

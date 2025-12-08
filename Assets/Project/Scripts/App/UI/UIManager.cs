@@ -115,7 +115,8 @@ public class UIManager : MonoBehaviour
         {
             if (ui != null)
             {
-                RegisterUI(ui.name, ui);
+                var key = string.IsNullOrEmpty(ui.UIKey) ? ui.name : ui.UIKey;
+                RegisterUI(key, ui);
             }
         }
 
