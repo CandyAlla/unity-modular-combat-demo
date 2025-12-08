@@ -21,6 +21,7 @@ public class SceneStateSystem
 
     private SceneStateId _currentId = SceneStateId.GameEntry;
     private ISceneManager _currentManager;
+    private bool _isTransitioning;
     #endregion
 
     #region Public Methods
@@ -38,6 +39,12 @@ public class SceneStateSystem
 
     public async void PerformTransition(SceneStateId target)
     {
+        if (_isTransitioning)
+        {
+            Debug.LogWarning($"[SceneStateSystem] Transition already in progress; requested {target} ignored.");
+            return;
+        }
+
         Debug.Log($"[SceneStateSystem] Begin transition: {_currentId} -> {target}");
 
         if (target == _currentId)
@@ -66,22 +73,47 @@ public class SceneStateSystem
             return;
         }
 
+        _isTransitioning = true;
+
         Debug.Log($"[SceneStateSystem] Loading scene: {sceneName}");
 
         var op = SceneManager.LoadSceneAsync(sceneName);
-        while (!op.isDone)
+        if (op == null)
         {
-            await Task.Yield();
+            Debug.LogError($"[SceneStateSystem] Failed to start loading scene: {sceneName}");
+            _isTransitioning = false;
+            return;
         }
 
-        PoolManager.Inst?.DoBeforeEnteringScene(sceneName);
+        try
+        {
+            while (!op.isDone)
+            {
+                await Task.Yield();
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"[SceneStateSystem] Exception during scene load {sceneName}: {ex}");
+            _isTransitioning = false;
+            return;
+        }
 
-        _currentId = target;
-        _currentManager = nextManager;
-        _currentManager.DoBeforeEntering();
-        _currentManager.DoEntered();
+        try
+        {
+            PoolManager.Inst?.DoBeforeEnteringScene(sceneName);
 
-        Debug.Log($"[SceneStateSystem] Entered state: {_currentId}");
+            _currentId = target;
+            _currentManager = nextManager;
+            _currentManager.DoBeforeEntering();
+            _currentManager.DoEntered();
+
+            Debug.Log($"[SceneStateSystem] Entered state: {_currentId}");
+        }
+        finally
+        {
+            _isTransitioning = false;
+        }
     }
     #endregion
 
