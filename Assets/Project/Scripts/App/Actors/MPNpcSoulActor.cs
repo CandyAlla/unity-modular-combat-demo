@@ -27,6 +27,16 @@ public class MPNpcSoulActor : MPCharacterSoulActorBase
         _playerTarget = player;
         ResetState();
     }
+
+    public void SetPoolKey(string poolKey)
+    {
+        if (!string.IsNullOrEmpty(poolKey))
+        {
+            _poolKey = poolKey;
+        }
+    }
+
+    public string GetPoolKey() => _poolKey;
     #endregion
 
     #region Protected Methods

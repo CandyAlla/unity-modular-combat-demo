@@ -13,19 +13,24 @@ MonoBehaviour:
   m_Name: MainChapterConfig_Stage1
   m_EditorClassIdentifier: 
   StageId: 1
-  Duration: 120
+  Duration: 15
   Waves:
-  - Time: 5
+  - Time: 1
     NpcId: 101
     NpcCount: 3
     SpawnPointIndex: 0
     SpawnPosition: {x: 0, y: 0, z: 0}
-  - Time: 15
+  - Time: 3
     NpcId: 102
     NpcCount: 5
     SpawnPointIndex: 1
     SpawnPosition: {x: 5, y: 0, z: 5}
-  - Time: 30
+  - Time: 6
+    NpcId: 103
+    NpcCount: 2
+    SpawnPointIndex: 2
+    SpawnPosition: {x: -3, y: 0, z: 4}
+  - Time: 10
     NpcId: 103
     NpcCount: 2
     SpawnPointIndex: 2

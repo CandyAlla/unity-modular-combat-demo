@@ -29,6 +29,8 @@ public class MPRoomManager : MonoBehaviour
     private RoomState _state = RoomState.NotStarted;
     private MainChapterInfo _chapterInfo;
     private readonly Dictionary<int, List<NPCSpawnData>> _secondToWaves = new Dictionary<int, List<NPCSpawnData>>();
+    private readonly Dictionary<int, GameObject> _npcPrefabLookup = new Dictionary<int, GameObject>();
+    private readonly Dictionary<int, string> _npcPoolKeyLookup = new Dictionary<int, string>();
     private int _aliveEnemyCount;
     private bool _isPaused;
     [SerializeField] private MPSoulActor _localPlayer;
@@ -87,7 +89,17 @@ public class MPRoomManager : MonoBehaviour
             _runtimeActorsRoot = PoolManager.Inst.RuntimeActorsRoot;
         }
 
-        PoolManager.InitPoolItem<MPNpcSoulActor>(_enemyPoolKey, _dummyEnemyPrefab, 0);
+        _npcPrefabLookup.Clear();
+        _npcPoolKeyLookup.Clear();
+
+        var globalPrefabs = DataCtrl.Instance.GetNpcPrefabsSnapshot();
+        foreach (var kvp in globalPrefabs)
+        {
+            if (kvp.Value != null)
+            {
+                _npcPrefabLookup[kvp.Key] = kvp.Value;
+            }
+        }
 
         if (_chapterInfo == null)
         {
@@ -100,6 +112,7 @@ public class MPRoomManager : MonoBehaviour
             _levelConfig = new LevelConfig { Duration = _chapterInfo.Duration };
         }
         _secondToWaves.Clear();
+        var npcIds = new HashSet<int>();
         if (_chapterInfo.Monsters != null)
         {
             foreach (var wave in _chapterInfo.Monsters)
@@ -110,6 +123,29 @@ public class MPRoomManager : MonoBehaviour
                     _secondToWaves[wave.Time] = list;
                 }
                 list.Add(wave);
+                npcIds.Add(wave.NpcId);
+            }
+        }
+
+        foreach (var npcId in npcIds)
+        {
+            var prefab = ResolveNpcPrefab(npcId);
+            if (prefab == null && _dummyEnemyPrefab != null)
+            {
+                prefab = _dummyEnemyPrefab;
+                _npcPrefabLookup[npcId] = prefab;
+            }
+
+            var poolKey = GetPoolKeyForNpc(npcId);
+            _npcPoolKeyLookup[npcId] = poolKey;
+
+            if (prefab != null)
+            {
+                PoolManager.InitPoolItem<MPNpcSoulActor>(poolKey, prefab, 0);
+            }
+            else
+            {
+                Debug.LogWarning($"[MPRoomManager] No prefab found for NPC {npcId}; spawns will be skipped.");
             }
         }
 
@@ -304,7 +340,8 @@ public class MPRoomManager : MonoBehaviour
         {
             if (npc != null)
             {
-                PoolManager.DespawnItemToPool(_enemyPoolKey, npc);
+                var poolKey = npc.GetPoolKey();
+                PoolManager.DespawnItemToPool(string.IsNullOrEmpty(poolKey) ? _enemyPoolKey : poolKey, npc);
             }
         }
         _npcs.Clear();
@@ -439,14 +476,16 @@ public class MPRoomManager : MonoBehaviour
     private void HandleWaveSpawn(NPCSpawnData wave, int second)
     {
         var basePos = ResolveSpawnPosition(wave);
-        Debug.Log($"[MPRoomManager] Second {second}: spawn {wave.NpcCount}x NPC {wave.NpcId} (SpawnPointIndex {wave.SpawnPointIndex}, BasePos {basePos}). Prefab={_dummyEnemyPrefab?.name ?? "None"}");
+        var prefab = ResolveNpcPrefab(wave);
+        var poolKey = ResolvePoolKey(wave);
+        Debug.Log($"[MPRoomManager] Second {second}: spawn {wave.NpcCount}x NPC {wave.NpcId} (SpawnPointIndex {wave.SpawnPointIndex}, BasePos {basePos}). Prefab={prefab?.name ?? "None"} PoolKey={poolKey}");
 
-        SpawnWave(wave, basePos);
+        SpawnWave(wave, prefab, poolKey, basePos);
     }
 
-    private void SpawnWave(NPCSpawnData wave, Vector3 basePos)
+    private void SpawnWave(NPCSpawnData wave, GameObject prefab, string poolKey, Vector3 basePos)
     {
-        if (_dummyEnemyPrefab == null || wave == null)
+        if (prefab == null || wave == null)
         {
             Debug.LogWarning("[MPRoomManager] SpawnWave skipped: missing prefab or wave data.");
             return;
@@ -457,7 +496,7 @@ public class MPRoomManager : MonoBehaviour
         for (var i = 0; i < spawnCount; i++)
         {
             var position = ResolveSpawnPositionForSpawn(basePos, wave, i);
-            SpawnEnemy(position);
+            SpawnEnemy(prefab, poolKey, position);
         }
     }
 
@@ -517,13 +556,13 @@ public class MPRoomManager : MonoBehaviour
         return position + offset;
     }
 
-    private void SpawnEnemy(Vector3 position)
+    private void SpawnEnemy(GameObject prefab, string poolKey, Vector3 position)
     {
         GameObject enemy = null;
         if (PoolManager.Inst != null)
         {
             var parent = PoolManager.Inst.RuntimeActorsRoot != null ? PoolManager.Inst.RuntimeActorsRoot : _runtimeActorsRoot;
-            enemy = PoolManager.SpawnItemFromPool<MPNpcSoulActor>(_enemyPoolKey, position, Quaternion.identity)?.gameObject;
+            enemy = PoolManager.SpawnItemFromPool<MPNpcSoulActor>(poolKey, position, Quaternion.identity)?.gameObject;
             if (enemy != null && parent != null && enemy.transform.parent != parent)
             {
                 enemy.transform.SetParent(parent, true);
@@ -531,14 +570,14 @@ public class MPRoomManager : MonoBehaviour
         }
         else
         {
-            if (_dummyEnemyPrefab == null)
+            if (prefab == null)
             {
                 Debug.LogWarning("[MPRoomManager] No enemy prefab assigned and no PoolManager available.");
                 return;
             }
 
             var parent = PoolManager.Inst != null ? PoolManager.Inst.RuntimeActorsRoot : _runtimeActorsRoot;
-            enemy = Instantiate(_dummyEnemyPrefab, position, Quaternion.identity, parent);
+            enemy = Instantiate(prefab, position, Quaternion.identity, parent);
         }
 
         if (enemy == null)
@@ -556,6 +595,7 @@ public class MPRoomManager : MonoBehaviour
         if (npc != null)
         {
             npc.Init(this, _localPlayer);
+            npc.SetPoolKey(poolKey);
 
             var agent = npc.GetComponent<UnityEngine.AI.NavMeshAgent>();
             if (agent != null)
@@ -593,6 +633,48 @@ public class MPRoomManager : MonoBehaviour
         }
 
         _npcs.Remove(npc);
+    }
+
+    private GameObject ResolveNpcPrefab(NPCSpawnData wave)
+    {
+        if (wave == null)
+        {
+            return _dummyEnemyPrefab;
+        }
+
+        return ResolveNpcPrefab(wave.NpcId);
+    }
+
+    private GameObject ResolveNpcPrefab(int npcId)
+    {
+        if (_npcPrefabLookup.TryGetValue(npcId, out var prefab) && prefab != null)
+        {
+            return prefab;
+        }
+
+        return _dummyEnemyPrefab;
+    }
+
+    private string ResolvePoolKey(NPCSpawnData wave)
+    {
+        if (wave == null)
+        {
+            return _enemyPoolKey;
+        }
+
+        return GetPoolKeyForNpc(wave.NpcId);
+    }
+
+    private string GetPoolKeyForNpc(int npcId)
+    {
+        if (_npcPoolKeyLookup.TryGetValue(npcId, out var key))
+        {
+            return key;
+        }
+
+        var resolved = string.IsNullOrEmpty(_enemyPoolKey) ? $"Enemy_{npcId}" : $"{_enemyPoolKey}_{npcId}";
+        _npcPoolKeyLookup[npcId] = resolved;
+        return resolved;
     }
 
     private void SetNpcsPaused(bool paused)

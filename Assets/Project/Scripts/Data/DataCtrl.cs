@@ -10,6 +10,7 @@ public class DataCtrl
     public static DataCtrl Instance => _instance ??= new DataCtrl();
 
     private readonly Dictionary<int, MainChapterInfo> _dicStageInfos = new Dictionary<int, MainChapterInfo>();
+    private readonly Dictionary<int, GameObject> _npcPrefabLookup = new Dictionary<int, GameObject>();
     private bool _initialized;
 
     private DataCtrl() { }
@@ -24,6 +25,8 @@ public class DataCtrl
         }
 
         _dicStageInfos.Clear();
+        _npcPrefabLookup.Clear();
+        LoadNpcPrefabConfigs();
         var configs = Resources.LoadAll<MainChapterConfig>(string.Empty);
 
         foreach (var config in configs)
@@ -61,6 +64,40 @@ public class DataCtrl
 
         Debug.LogWarning($"[DataCtrl] Stage info not found for id: {stageId}");
         return null;
+    }
+
+    public GameObject GetNpcPrefab(int npcId)
+    {
+        return _npcPrefabLookup.TryGetValue(npcId, out var prefab) ? prefab : null;
+    }
+
+    public Dictionary<int, GameObject> GetNpcPrefabsSnapshot()
+    {
+        return new Dictionary<int, GameObject>(_npcPrefabLookup);
+    }
+    #endregion
+
+    #region Private Methods
+    private void LoadNpcPrefabConfigs()
+    {
+        var prefabConfigs = Resources.LoadAll<NpcPrefabConfig>(string.Empty);
+        foreach (var cfg in prefabConfigs)
+        {
+            if (cfg == null || cfg.Entries == null)
+            {
+                continue;
+            }
+
+            foreach (var entry in cfg.Entries)
+            {
+                if (entry != null && entry.Prefab != null)
+                {
+                    _npcPrefabLookup[entry.NpcId] = entry.Prefab;
+                }
+            }
+        }
+
+        Debug.Log($"[DataCtrl] Loaded NPC prefab mappings: {_npcPrefabLookup.Count}");
     }
     #endregion
 }
