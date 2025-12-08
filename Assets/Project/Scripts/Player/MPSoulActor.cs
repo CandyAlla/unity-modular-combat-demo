@@ -41,16 +41,6 @@ public class MPSoulActor : MPCharacterSoulActorBase
         _input?.Disable();
     }
 
-    protected override void Update()
-    {
-        if (_roomManager != null && _roomManager.State != MPRoomManager.RoomState.Running)
-        {
-            return;
-        }
-
-        base.Update();
-    }
-
     protected override void OnDestroy()
     {
         _input?.Dispose();
@@ -67,6 +57,11 @@ public class MPSoulActor : MPCharacterSoulActorBase
     protected override void OnUpdatePlayerMovement(float deltaTime)
     {
         if (!_canControl)
+        {
+            return;
+        }
+
+        if (MPRoomManager.Inst != null && MPRoomManager.Inst.IsPaused)
         {
             return;
         }

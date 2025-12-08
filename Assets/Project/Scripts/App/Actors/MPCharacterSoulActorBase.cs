@@ -31,23 +31,7 @@ public class MPCharacterSoulActorBase : MonoBehaviour
 
     protected virtual void OnDestroy() { }
 
-    protected virtual void Update()
-    {
-        if (IsDead)
-        {
-            return;
-        }
-
-        var deltaTime = Time.deltaTime;
-        if (_isPlayer)
-        {
-            OnUpdatePlayerMovement(deltaTime);
-        }
-        else
-        {
-            OnUpdateNpcMovement(deltaTime);
-        }
-    }
+    // Per-frame logic is driven externally via TickActor to centralize updates in the room manager.
     #endregion
 
     #region Public Methods
@@ -67,6 +51,23 @@ public class MPCharacterSoulActorBase : MonoBehaviour
             IsDead = true;
             OnBeforeDeath();
             OnAfterDeath();
+        }
+    }
+
+    public void TickActor(float deltaTime)
+    {
+        if (IsDead)
+        {
+            return;
+        }
+
+        if (_isPlayer)
+        {
+            OnUpdatePlayerMovement(deltaTime);
+        }
+        else
+        {
+            OnUpdateNpcMovement(deltaTime);
         }
     }
     #endregion

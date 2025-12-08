@@ -1,8 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// MPRoomManager drives the single-player battle timeline and wave triggers.
-// It advances time while running, checks chapter config per second, and logs spawn intentions.
+// MPRoomManager drives the single-player battle timeline, spawning, and centralized ticking.
 public class MPRoomManager : MonoBehaviour
 {
     #region Types
@@ -32,14 +31,40 @@ public class MPRoomManager : MonoBehaviour
     private int _lastProcessedSecond = -1;
     private int _durationSeconds;
     private int _aliveEnemyCount;
+    private bool _isPaused;
     [SerializeField] private MPSoulActor _localPlayer;
+    private readonly List<MPCharacterSoulActorBase> _actors = new List<MPCharacterSoulActorBase>();
+    private readonly List<MPNpcSoulActor> _npcs = new List<MPNpcSoulActor>();
     #endregion
 
     #region Properties
+    public static MPRoomManager Inst { get; private set; }
     public RoomState State => _state;
     public float ElapsedTime => _elapsedTime;
     public int DurationSeconds => _durationSeconds;
     public int AliveEnemyCount => _aliveEnemyCount;
+    public bool IsPaused => _isPaused;
+    #endregion
+
+    #region Unity Lifecycle
+    private void Awake()
+    {
+        if (Inst != null && Inst != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Inst = this;
+    }
+
+    private void OnDestroy()
+    {
+        if (Inst == this)
+        {
+            Inst = null;
+        }
+    }
     #endregion
 
     #region Public Methods
@@ -79,10 +104,17 @@ public class MPRoomManager : MonoBehaviour
         _elapsedTime = 0f;
         _lastProcessedSecond = -1;
         _aliveEnemyCount = 0;
+        _isPaused = false;
+        _actors.Clear();
 
         if (_localPlayer == null)
         {
             _localPlayer = FindObjectOfType<MPSoulActor>();
+        }
+
+        if (_localPlayer != null)
+        {
+            RegisterActor(_localPlayer);
         }
 
         if (_camManager == null)
@@ -116,6 +148,7 @@ public class MPRoomManager : MonoBehaviour
         _state = RoomState.Running;
         _elapsedTime = 0f;
         _lastProcessedSecond = -1;
+        _isPaused = false;
         Debug.Log("[MPRoomManager] Battle started.");
     }
 
@@ -128,6 +161,7 @@ public class MPRoomManager : MonoBehaviour
         }
 
         _state = RoomState.Paused;
+        TogglePause();
         Debug.Log("[MPRoomManager] Battle paused.");
     }
 
@@ -140,6 +174,7 @@ public class MPRoomManager : MonoBehaviour
         }
 
         _state = RoomState.Running;
+        TogglePause();
         Debug.Log("[MPRoomManager] Battle resumed.");
     }
 
@@ -153,9 +188,77 @@ public class MPRoomManager : MonoBehaviour
         _state = RoomState.Finished;
         Debug.Log($"[MPRoomManager] Battle finished at {_elapsedTime:F1}s.");
     }
+
+    public void TogglePause()
+    {
+        _isPaused = !_isPaused;
+        Debug.Log($"[MPRoomManager] Pause toggled: {_isPaused}");
+
+        foreach (var npc in _npcs)
+        {
+            if (npc != null)
+            {
+                npc.SetPaused(_isPaused);
+            }
+        }
+    }
+
+    public void RegisterEnemyDestroyed()
+    {
+        _aliveEnemyCount = Mathf.Max(0, _aliveEnemyCount - 1);
+    }
+
+    public void OnSetMPCamManager(MPCamManager camMgr)
+    {
+        _camManager = camMgr;
+    }
+
+    public void OnEnemySpawned(MPNpcSoulActor enemy)
+    {
+        _aliveEnemyCount++;
+    }
+
+    public void OnEnemyDead(MPNpcSoulActor actor)
+    {
+        RegisterEnemyDestroyed();
+        UnregisterNpc(actor);
+        UnregisterActor(actor);
+        Debug.Log("[MPRoomManager] Enemy dead reported.");
+    }
+
+    public void OnPlayerDead()
+    {
+        if (_state != RoomState.Running)
+        {
+            return;
+        }
+
+        Debug.Log("[MPRoomManager] Player dead, ending battle (fail).");
+        EndBattle();
+    }
+
+    public void RegisterActor(MPCharacterSoulActorBase actor)
+    {
+        if (actor == null || _actors.Contains(actor))
+        {
+            return;
+        }
+
+        _actors.Add(actor);
+    }
+
+    public void UnregisterActor(MPCharacterSoulActorBase actor)
+    {
+        if (actor == null)
+        {
+            return;
+        }
+
+        _actors.Remove(actor);
+    }
     #endregion
 
-    #region Unity Lifecycle
+    #region Unity Lifecycle Updates
     private void Update()
     {
         if (_state != RoomState.Running)
@@ -163,7 +266,14 @@ public class MPRoomManager : MonoBehaviour
             return;
         }
 
-        _elapsedTime += Time.deltaTime;
+        if (_isPaused)
+        {
+            return;
+        }
+
+        var deltaTime = Time.deltaTime;
+
+        _elapsedTime += deltaTime;
         var currentSecond = Mathf.FloorToInt(_elapsedTime);
 
         for (var sec = _lastProcessedSecond + 1; sec <= currentSecond; sec++)
@@ -182,10 +292,26 @@ public class MPRoomManager : MonoBehaviour
         {
             EndBattle();
         }
+
+        TickActors(deltaTime);
     }
     #endregion
 
     #region Private Methods
+    private void TickActors(float deltaTime)
+    {
+        for (var i = 0; i < _actors.Count; i++)
+        {
+            var actor = _actors[i];
+            if (actor == null || actor.IsDead)
+            {
+                continue;
+            }
+
+            actor.TickActor(deltaTime);
+        }
+    }
+
     private void OnSecondTick(int second)
     {
         Debug.Log($"[MPRoomManager] Second {second} reached.");
@@ -224,42 +350,6 @@ public class MPRoomManager : MonoBehaviour
         }
     }
 
-    private void RegisterSpawnedEnemy()
-    {
-        _aliveEnemyCount += 1;
-    }
-
-    public void RegisterEnemyDestroyed()
-    {
-        _aliveEnemyCount = Mathf.Max(0, _aliveEnemyCount - 1);
-    }
-
-    public void OnSetMPCamManager(MPCamManager camMgr)
-    {
-        _camManager = camMgr;
-    }
-
-    public void OnEnemySpawned(MPNpcSoulActor enemy)
-    {
-        _aliveEnemyCount++;
-    }
-
-    public void OnEnemyDead(MPNpcSoulActor actor)
-    {
-        RegisterEnemyDestroyed();
-        Debug.Log("[MPRoomManager] Enemy dead reported.");
-    }
-
-    public void OnPlayerDead()
-    {
-        if (_state != RoomState.Running)
-        {
-            return;
-        }
-
-        Debug.Log("[MPRoomManager] Player dead, ending battle (fail).");
-        EndBattle();
-    }
     private Vector3 ResolveSpawnPosition(NPCSpawnData wave)
     {
         if (wave != null && wave.SpawnPosition != Vector3.zero)
@@ -365,11 +455,33 @@ public class MPRoomManager : MonoBehaviour
 
             npc.transform.position = position;
             OnEnemySpawned(npc);
+            RegisterActor(npc);
+            RegisterNpc(npc);
         }
         else
         {
             Debug.LogWarning("[MPRoomManager] Spawned enemy missing MPNpcSoulActor component.");
         }
+    }
+
+    private void RegisterNpc(MPNpcSoulActor npc)
+    {
+        if (npc == null || _npcs.Contains(npc))
+        {
+            return;
+        }
+
+        _npcs.Add(npc);
+    }
+
+    private void UnregisterNpc(MPNpcSoulActor npc)
+    {
+        if (npc == null)
+        {
+            return;
+        }
+
+        _npcs.Remove(npc);
     }
     #endregion
 }

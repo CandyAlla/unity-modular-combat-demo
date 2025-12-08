@@ -17,6 +17,7 @@ public class MPNpcSoulActor : MPCharacterSoulActorBase
     private MPRoomManager _roomManager;
     private float _attackTimer;
     private NavMeshAgent _agent;
+    private bool _isPaused;
     #endregion
 
     #region Public Methods
@@ -42,6 +43,11 @@ public class MPNpcSoulActor : MPCharacterSoulActorBase
 
     protected override void OnUpdateNpcMovement(float deltaTime)
     {
+        if (_isPaused)
+        {
+            return;
+        }
+
         if (IsDead)
         {
             return;
@@ -55,6 +61,11 @@ public class MPNpcSoulActor : MPCharacterSoulActorBase
         if (_playerTarget == null || _playerTarget.IsDead)
         {
             return;
+        }
+
+        if (_agent != null && _agent.isStopped)
+        {
+            _agent.isStopped = false;
         }
 
         _agent.speed = _moveSpeed;
@@ -98,6 +109,11 @@ public class MPNpcSoulActor : MPCharacterSoulActorBase
 
     private void HandleAttack(float deltaTime, float sqrDistanceToPlayer)
     {
+        if (_isPaused)
+        {
+            return;
+        }
+
         _attackTimer += deltaTime;
 
         if (_attackTimer < AttackInterval)
@@ -114,6 +130,24 @@ public class MPNpcSoulActor : MPCharacterSoulActorBase
         {
             _attackTimer = 0f;
             _playerTarget?.TakeDamage(AttackDamage);
+        }
+    }
+
+    public void SetPaused(bool paused)
+    {
+        _isPaused = paused;
+
+        if (_agent != null)
+        {
+            if (paused)
+            {
+                _agent.isStopped = true;
+                _agent.velocity = Vector3.zero;
+            }
+            else
+            {
+                _agent.isStopped = false;
+            }
         }
     }
     #endregion
