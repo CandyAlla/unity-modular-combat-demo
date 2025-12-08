@@ -6,7 +6,7 @@ using UnityEngine.UI;
 // UI_BattlePanel handles in-battle UI interactions such as starting and exiting.
 // It wires buttons to GameClientManager and MPRoomManager instead of loading scenes directly.
 // Keep it focused on UI events only; scene flow lives in the managers/state system.
-public class UI_BattlePanel : MonoBehaviour
+public class UI_BattlePanel : UIBase
 {
     #region Inspector
     [SerializeField] private Button _exitBattleButton;
@@ -17,8 +17,9 @@ public class UI_BattlePanel : MonoBehaviour
     #endregion
 
     #region Unity Lifecycle
-    private void Awake()
+    protected override void Awake()
     {
+        base.Awake();
         if(_exitBattleButton != null)
             _exitBattleButton.onClick.AddListener(OnClickExitBattle);
 

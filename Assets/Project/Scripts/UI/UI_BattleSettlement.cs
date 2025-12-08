@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 
 // UI_BattleSettlement shows battle result and provides retry/back controls.
-public class UI_BattleSettlement : MonoBehaviour
+public class UI_BattleSettlement : UIBase
 {
     #region Inspector
     [SerializeField] private TMP_Text _timeText;
@@ -14,8 +14,9 @@ public class UI_BattleSettlement : MonoBehaviour
     #endregion
 
     #region Unity Lifecycle
-    private void Awake()
+    protected override void Awake()
     {
+        base.Awake();
         gameObject.SetActive(false);
 
         if (_roomManager == null)
@@ -38,11 +39,12 @@ public class UI_BattleSettlement : MonoBehaviour
     #region Public Methods
     public void Show(bool isWin)
     {
-        gameObject.SetActive(true);
         if (_resultText != null)
         {
             _resultText.text = isWin ? "Victory" : "Defeat";
         }
+
+        Open();
     }
 
     public void SetTime(float seconds)
@@ -59,7 +61,7 @@ public class UI_BattleSettlement : MonoBehaviour
     #region Private Methods
     private void OnClickRetry()
     {
-        gameObject.SetActive(false);
+        Close();
         _roomManager?.RestartLevel();
     }
 

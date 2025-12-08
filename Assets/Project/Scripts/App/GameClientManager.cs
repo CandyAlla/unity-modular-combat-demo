@@ -30,6 +30,11 @@ public class GameClientManager : MonoBehaviour
     public void OnInit()
     {
         PoolManager.CreatePoolManager();
+        if (UIManager.Inst == null)
+        {
+            var uiRoot = new GameObject("UIManager");
+            uiRoot.AddComponent<UIManager>();
+        }
         // Scene State System setup
         _sceneStateSystem = new SceneStateSystem();
         _dataCtrl = DataCtrl.Instance;

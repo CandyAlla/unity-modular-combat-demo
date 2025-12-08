@@ -293,8 +293,7 @@ public class MPRoomManager : MonoBehaviour
     {
         Debug.Log($"[MPRoomManager] Level over. Win={isWin}");
 
-        _battleSettlementUI?.SetTime(_currentTime);
-        _battleSettlementUI?.Show(isWin);
+        UIManager.Inst?.OpenBattleSettlement(isWin, _currentTime);
     }
 
     public void RestartLevel()

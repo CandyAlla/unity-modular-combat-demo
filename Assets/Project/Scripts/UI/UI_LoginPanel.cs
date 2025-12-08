@@ -3,7 +3,7 @@ using UnityEngine.UI;
 
 // UI_LoginPanel wires login buttons to the scene flow through GameClientManager.
 // It only drives transitions and quit; no scene loading directly.
-public class UI_LoginPanel : MonoBehaviour
+public class UI_LoginPanel : UIBase
 {
     #region Inspector
     [SerializeField] private Button _enterGameButton;
@@ -11,8 +11,9 @@ public class UI_LoginPanel : MonoBehaviour
     #endregion
 
     #region Unity Lifecycle
-    private void Awake()
+    protected override void Awake()
     {
+        base.Awake();
         if (_enterGameButton != null)
             _enterGameButton.onClick.AddListener(OnClickEnterGame);
 
