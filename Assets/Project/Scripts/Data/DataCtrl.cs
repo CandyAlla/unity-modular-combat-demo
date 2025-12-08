@@ -5,12 +5,22 @@ using UnityEngine;
 // It is a lightweight singleton cached in memory for stage lookups at battle entry.
 public class DataCtrl
 {
+    #region Types
+    public class StageEntry
+    {
+        public int StageId;
+        public string DisplayName;
+        public int Duration;
+    }
+    #endregion
+
     #region Fields
     private static DataCtrl _instance;
     public static DataCtrl Instance => _instance ??= new DataCtrl();
 
     private readonly Dictionary<int, MainChapterInfo> _dicStageInfos = new Dictionary<int, MainChapterInfo>();
     private readonly Dictionary<int, GameObject> _npcPrefabLookup = new Dictionary<int, GameObject>();
+    private readonly List<StageEntry> _stageEntries = new List<StageEntry>();
     private bool _initialized;
 
     private DataCtrl() { }
@@ -26,6 +36,7 @@ public class DataCtrl
 
         _dicStageInfos.Clear();
         _npcPrefabLookup.Clear();
+        _stageEntries.Clear();
         LoadNpcPrefabConfigs();
         var configs = Resources.LoadAll<MainChapterConfig>(string.Empty);
 
@@ -44,6 +55,12 @@ public class DataCtrl
             };
 
             _dicStageInfos[info.StageId] = info;
+            _stageEntries.Add(new StageEntry
+            {
+                StageId = info.StageId,
+                DisplayName = config.name,
+                Duration = info.Duration
+            });
             Debug.Log($"[DataCtrl] Loaded chapter config for stage {info.StageId} with {info.Monsters.Count} waves.");
         }
 
@@ -74,6 +91,16 @@ public class DataCtrl
     public Dictionary<int, GameObject> GetNpcPrefabsSnapshot()
     {
         return new Dictionary<int, GameObject>(_npcPrefabLookup);
+    }
+
+    public List<StageEntry> GetAllStageEntries()
+    {
+        if (!_initialized)
+        {
+            InitAllChapterInfos();
+        }
+
+        return new List<StageEntry>(_stageEntries);
     }
     #endregion
 

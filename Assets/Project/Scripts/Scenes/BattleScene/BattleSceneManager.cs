@@ -25,7 +25,8 @@ public class BattleSceneManager : ISceneManager
 
         EnsureRoomManager();
         DataCtrl.Instance.InitAllChapterInfos();
-        _roomManager.InitializeStage(1);
+        var stageId = GameClientManager.Instance != null ? GameClientManager.Instance.GetSelectedStageId() : 1;
+        _roomManager.InitializeStage(stageId);
     }
 
     public void DoBeforeLeaving()

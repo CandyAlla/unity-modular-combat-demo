@@ -1,5 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
+using System.Collections.Generic;
+using TMPro;
 
 // UI_LoginPanel wires login buttons to the scene flow through GameClientManager.
 // It only drives transitions and quit; no scene loading directly.
@@ -8,6 +10,14 @@ public class UI_LoginPanel : UIBase
     #region Inspector
     [SerializeField] private Button _enterGameButton;
     [SerializeField] private Button _quitButton;
+    [SerializeField] private Transform _stageListRoot;
+    [SerializeField] private Button _stageItemTemplate;
+    [SerializeField] private TMP_Text _stageDisplayText;
+    #endregion
+
+    #region Fields
+    private int _selectedStageId = 1;
+    private readonly List<Button> _spawnedStageButtons = new List<Button>();
     #endregion
 
     #region Unity Lifecycle
@@ -19,6 +29,9 @@ public class UI_LoginPanel : UIBase
 
         if (_quitButton != null)
             _quitButton.onClick.AddListener(OnClickQuit);
+
+        SyncSelection();
+        BuildStageList();
     }
 
     private void OnDestroy()
@@ -28,6 +41,15 @@ public class UI_LoginPanel : UIBase
 
         if (_quitButton != null)
             _quitButton.onClick.RemoveListener(OnClickQuit);
+
+        foreach (var btn in _spawnedStageButtons)
+        {
+            if (btn != null)
+            {
+                btn.onClick.RemoveAllListeners();
+            }
+        }
+        _spawnedStageButtons.Clear();
     }
     #endregion
 
@@ -47,6 +69,69 @@ public class UI_LoginPanel : UIBase
 #else
         Application.Quit();
 #endif
+    }
+
+    private void OnClickSelectStage(int stageId, string stageName)
+    {
+        _selectedStageId = stageId;
+        GameClientManager.Instance?.SetSelectedStageId(stageId);
+        if (_stageDisplayText != null)
+        {
+            _stageDisplayText.text = string.IsNullOrEmpty(stageName) ? $"Stage {stageId}" : stageName;
+        }
+        Debug.Log($"[LoginUI] Stage selected: {stageName} (ID={stageId})");
+    }
+
+    private void SyncSelection()
+    {
+        var current = GameClientManager.Instance != null ? GameClientManager.Instance.GetSelectedStageId() : _selectedStageId;
+        _selectedStageId = current;
+        if (_stageDisplayText != null)
+        {
+            _stageDisplayText.text = $"Stage {_selectedStageId}";
+        }
+    }
+
+    private void BuildStageList()
+    {
+        var entries = DataCtrl.Instance.GetAllStageEntries();
+        if (_stageItemTemplate == null || _stageListRoot == null)
+        {
+            Debug.LogWarning("[LoginUI] Stage list not built: missing template or root.");
+            return;
+        }
+
+        foreach (var btn in _spawnedStageButtons)
+        {
+            if (btn != null)
+            {
+                Destroy(btn.gameObject);
+            }
+        }
+        _spawnedStageButtons.Clear();
+
+        _stageItemTemplate.gameObject.SetActive(false);
+
+        foreach (var entry in entries)
+        {
+            var btnObj = Instantiate(_stageItemTemplate, _stageListRoot);
+            btnObj.gameObject.SetActive(true);
+            var label = btnObj.GetComponentInChildren<TMP_Text>();
+            if (label != null)
+            {
+                label.text = string.IsNullOrEmpty(entry.DisplayName) ? $"Stage {entry.StageId}" : entry.DisplayName;
+            }
+
+            var capturedId = entry.StageId;
+            var capturedName = entry.DisplayName;
+            btnObj.onClick.AddListener(() =>
+            {
+                OnClickSelectStage(capturedId, capturedName);
+                OnClickEnterGame();
+            });
+
+            _spawnedStageButtons.Add(btnObj);
+        }
     }
     #endregion
 }

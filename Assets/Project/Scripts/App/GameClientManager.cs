@@ -10,6 +10,7 @@ public class GameClientManager : MonoBehaviour
 
     private SceneStateSystem _sceneStateSystem;
     private DataCtrl _dataCtrl;
+    private int _selectedStageId = 1;
     #endregion
 
     #region Unity Lifecycle
@@ -61,5 +62,13 @@ public class GameClientManager : MonoBehaviour
         Debug.Log($"[GameClientManager] SetTransition to {target}");
         _sceneStateSystem.PerformTransition(target);
     }
+
+    public void SetSelectedStageId(int stageId)
+    {
+        _selectedStageId = Mathf.Max(1, stageId);
+        Debug.Log($"[GameClientManager] Selected stage set to {_selectedStageId}");
+    }
+
+    public int GetSelectedStageId() => _selectedStageId;
     #endregion
 }

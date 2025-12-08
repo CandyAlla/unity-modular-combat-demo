@@ -1,0 +1,72 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7064a040186462184059bfdbe1eab29, type: 3}
+  m_Name: Stage_02_Rush
+  m_EditorClassIdentifier: 
+  StageId: 2
+  Duration: 90
+  Waves:
+  - Time: 2
+    NpcId: 101
+    NpcCount: 2
+    SpawnPointIndex: 0
+    SpawnPosition: {x: 0, y: 0, z: 0}
+  - Time: 31
+    NpcId: 102
+    NpcCount: 5
+    SpawnPointIndex: 0
+    SpawnPosition: {x: 0, y: 0, z: 0}
+  - Time: 32
+    NpcId: 102
+    NpcCount: 5
+    SpawnPointIndex: 1
+    SpawnPosition: {x: 0, y: 0, z: 0}
+  - Time: 33
+    NpcId: 102
+    NpcCount: 5
+    SpawnPointIndex: 2
+    SpawnPosition: {x: 0, y: 0, z: 0}
+  - Time: 34
+    NpcId: 102
+    NpcCount: 5
+    SpawnPointIndex: 0
+    SpawnPosition: {x: 0, y: 0, z: 0}
+  - Time: 35
+    NpcId: 102
+    NpcCount: 5
+    SpawnPointIndex: 1
+    SpawnPosition: {x: 0, y: 0, z: 0}
+  - Time: 36
+    NpcId: 102
+    NpcCount: 5
+    SpawnPointIndex: 2
+    SpawnPosition: {x: 0, y: 0, z: 0}
+  - Time: 37
+    NpcId: 102
+    NpcCount: 5
+    SpawnPointIndex: 0
+    SpawnPosition: {x: 0, y: 0, z: 0}
+  - Time: 38
+    NpcId: 102
+    NpcCount: 5
+    SpawnPointIndex: 1
+    SpawnPosition: {x: 0, y: 0, z: 0}
+  - Time: 39
+    NpcId: 102
+    NpcCount: 5
+    SpawnPointIndex: 2
+    SpawnPosition: {x: 0, y: 0, z: 0}
+  - Time: 40
+    NpcId: 102
+    NpcCount: 5
+    SpawnPointIndex: 0
+    SpawnPosition: {x: 0, y: 0, z: 0}
