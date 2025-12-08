@@ -73,6 +73,13 @@ public class UI_LoginPanel : UIBase
 
     private void OnClickSelectStage(int stageId, string stageName)
     {
+        var info = DataCtrl.Instance.GetStageInfo(stageId);
+        if (info == null)
+        {
+            Debug.LogWarning($"[LoginUI] Stage {stageId} not found in DataCtrl, selection ignored.");
+            return;
+        }
+
         _selectedStageId = stageId;
         GameClientManager.Instance?.SetSelectedStageId(stageId);
         if (_stageDisplayText != null)
@@ -86,9 +93,10 @@ public class UI_LoginPanel : UIBase
     {
         var current = GameClientManager.Instance != null ? GameClientManager.Instance.GetSelectedStageId() : _selectedStageId;
         _selectedStageId = current;
+        var displayName = ResolveStageName(_selectedStageId);
         if (_stageDisplayText != null)
         {
-            _stageDisplayText.text = $"Stage {_selectedStageId}";
+            _stageDisplayText.text = string.IsNullOrEmpty(displayName) ? $"Stage {_selectedStageId}" : displayName;
         }
     }
 
@@ -124,14 +132,23 @@ public class UI_LoginPanel : UIBase
 
             var capturedId = entry.StageId;
             var capturedName = entry.DisplayName;
-            btnObj.onClick.AddListener(() =>
-            {
-                OnClickSelectStage(capturedId, capturedName);
-                OnClickEnterGame();
-            });
+            btnObj.onClick.AddListener(() => OnClickSelectStage(capturedId, capturedName));
 
             _spawnedStageButtons.Add(btnObj);
         }
+    }
+
+    private string ResolveStageName(int stageId)
+    {
+        var entries = DataCtrl.Instance.GetAllStageEntries();
+        foreach (var entry in entries)
+        {
+            if (entry != null && entry.StageId == stageId)
+            {
+                return string.IsNullOrEmpty(entry.DisplayName) ? $"Stage {stageId}" : entry.DisplayName;
+            }
+        }
+        return string.Empty;
     }
     #endregion
 }

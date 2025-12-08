@@ -51,7 +51,13 @@ public class PoolManager : MonoBehaviour
             CreatePoolManager();
         }
 
-        Inst._poolModelCtrl?.InitPoolItem<T>(key, prefab, preloadCount);
+        if (Inst._poolModelCtrl == null)
+        {
+            Debug.LogWarning("[PoolManager] InitPoolItem ignored: pool model controller not ready.");
+            return;
+        }
+
+        Inst._poolModelCtrl.InitPoolItem<T>(key, prefab, preloadCount);
     }
 
     public static T SpawnItemFromPool<T>(string key, Vector3 position, Quaternion rotation) where T : Component
@@ -61,9 +67,13 @@ public class PoolManager : MonoBehaviour
             CreatePoolManager();
         }
 
-        return Inst._poolModelCtrl != null
-            ? Inst._poolModelCtrl.SpawnItemFromPool<T>(key, position, rotation, Inst._runtimeActorsRoot)
-            : null;
+        if (Inst._poolModelCtrl == null)
+        {
+            Debug.LogWarning("[PoolManager] SpawnItemFromPool ignored: pool model controller not ready.");
+            return null;
+        }
+
+        return Inst._poolModelCtrl.SpawnItemFromPool<T>(key, position, rotation, Inst._runtimeActorsRoot);
     }
 
     public static void DespawnItemToPool<T>(string key, T instance) where T : Component
@@ -73,7 +83,13 @@ public class PoolManager : MonoBehaviour
             return;
         }
 
-        Inst._poolModelCtrl?.DespawnItemToPool(key, instance.gameObject);
+        if (Inst._poolModelCtrl == null)
+        {
+            Debug.LogWarning("[PoolManager] DespawnItemToPool ignored: pool model controller not ready.");
+            return;
+        }
+
+        Inst._poolModelCtrl.DespawnItemToPool(key, instance.gameObject);
     }
     #endregion
 

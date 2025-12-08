@@ -1,5 +1,7 @@
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 
@@ -15,6 +17,7 @@ public class UIBase : MonoBehaviour
     [SerializeField] private float _closeDuration = 0.15f;
     [SerializeField] private Vector3 _openScale = Vector3.one;
     [SerializeField] private Vector3 _closedScale = Vector3.one * 0.95f;
+    [SerializeField] private Selectable _defaultSelectable;
 
     [Header("Events")]
     [SerializeField] private UnityEvent _onOpenCompleted;
@@ -54,12 +57,29 @@ public class UIBase : MonoBehaviour
         AnimateOpenAsync(_animCts.Token).Forget();
     }
 
+    public virtual UniTask OpenAsync(CancellationToken externalToken = default)
+    {
+        gameObject.SetActive(true);
+        _animCts?.Cancel();
+        _animCts?.Dispose();
+        _animCts = CancellationTokenSource.CreateLinkedTokenSource(externalToken);
+        return AnimateOpenAsync(_animCts.Token);
+    }
+
     public virtual void Close()
     {
         _animCts?.Cancel();
         _animCts?.Dispose();
         _animCts = new CancellationTokenSource();
         AnimateCloseAsync(_animCts.Token).Forget();
+    }
+
+    public virtual UniTask CloseAsync(CancellationToken externalToken = default)
+    {
+        _animCts?.Cancel();
+        _animCts?.Dispose();
+        _animCts = CancellationTokenSource.CreateLinkedTokenSource(externalToken);
+        return AnimateCloseAsync(_animCts.Token);
     }
     #endregion
 
@@ -69,11 +89,12 @@ public class UIBase : MonoBehaviour
     #endregion
 
     #region Private Methods
-    private async UniTaskVoid AnimateOpenAsync(CancellationToken token)
+    private async UniTask AnimateOpenAsync(CancellationToken token)
     {
         _canvasGroup.blocksRaycasts = true;
         _canvasGroup.interactable = true;
         OnOpenUI();
+        SelectDefault();
 
         var duration = Mathf.Max(0.01f, _openDuration);
         var time = 0f;
@@ -95,7 +116,7 @@ public class UIBase : MonoBehaviour
         }
     }
 
-    private async UniTaskVoid AnimateCloseAsync(CancellationToken token)
+    private async UniTask AnimateCloseAsync(CancellationToken token)
     {
         _canvasGroup.blocksRaycasts = false;
         _canvasGroup.interactable = false;
@@ -119,6 +140,19 @@ public class UIBase : MonoBehaviour
             transform.localScale = _closedScale;
             _onCloseCompleted?.Invoke();
             gameObject.SetActive(false);
+        }
+    }
+
+    private void SelectDefault()
+    {
+        if (_defaultSelectable == null)
+        {
+            return;
+        }
+
+        if (EventSystem.current != null)
+        {
+            EventSystem.current.SetSelectedGameObject(_defaultSelectable.gameObject);
         }
     }
     #endregion

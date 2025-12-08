@@ -11,6 +11,7 @@ public class GameClientManager : MonoBehaviour
     private SceneStateSystem _sceneStateSystem;
     private DataCtrl _dataCtrl;
     private int _selectedStageId = 1;
+    private bool _initialized;
     #endregion
 
     #region Unity Lifecycle
@@ -30,18 +31,21 @@ public class GameClientManager : MonoBehaviour
     #region Public Methods
     public void OnInit()
     {
-        PoolManager.CreatePoolManager();
-        if (UIManager.Inst == null)
+        if (_initialized)
         {
-            var uiRoot = new GameObject("UIManager");
-            uiRoot.AddComponent<UIManager>();
+            Debug.Log("[GameClientManager] OnInit skipped (already initialized).");
+            return;
         }
-        // Scene State System setup
+
+        PoolManager.CreatePoolManager();
+        EnsureUIManager();
+
         _sceneStateSystem = new SceneStateSystem();
         _dataCtrl = DataCtrl.Instance;
         _dataCtrl.InitAllChapterInfos();
         _sceneStateSystem.RegisterSceneManager(new LoginSceneManager());
         _sceneStateSystem.RegisterSceneManager(new BattleSceneManager());
+        _initialized = true;
         Debug.Log("[GameClientManager] OnInit");
     }
 
@@ -70,5 +74,22 @@ public class GameClientManager : MonoBehaviour
     }
 
     public int GetSelectedStageId() => _selectedStageId;
+
+    private void EnsureUIManager()
+    {
+        if (UIManager.Inst != null)
+        {
+            return;
+        }
+
+        var existing = FindObjectOfType<UIManager>();
+        if (existing != null)
+        {
+            return;
+        }
+
+        var uiRoot = new GameObject("UIManager");
+        uiRoot.AddComponent<UIManager>();
+    }
     #endregion
 }

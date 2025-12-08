@@ -68,6 +68,11 @@ public class MPRoomManager : MonoBehaviour
         }
 
         Inst = this;
+
+        if (_spawnPoints == null || _spawnPoints.Length == 0)
+        {
+            Debug.LogWarning("[MPRoomManager] No spawn points assigned; will fall back to origin.");
+        }
     }
 
     private void OnDestroy()
@@ -141,7 +146,7 @@ public class MPRoomManager : MonoBehaviour
 
             if (prefab != null)
             {
-                PoolManager.InitPoolItem<MPNpcSoulActor>(poolKey, prefab, 0);
+                PoolManager.InitPoolItem<MPNpcSoulActor>(poolKey, prefab, 2);
             }
             else
             {
@@ -163,6 +168,10 @@ public class MPRoomManager : MonoBehaviour
         if (_localPlayer == null)
         {
             _localPlayer = FindObjectOfType<MPSoulActor>();
+            if (_localPlayer == null)
+            {
+                Debug.LogError("[MPRoomManager] Local player not found. Spawning logic will not proceed.");
+            }
         }
 
         if (_localPlayer != null)
@@ -181,6 +190,10 @@ public class MPRoomManager : MonoBehaviour
         {
             _camManager.OnInitCam(_localPlayer);
             _localPlayer.OnSetMPCamMgr(_camManager);
+        }
+        else if (_camManager == null)
+        {
+            Debug.LogWarning("[MPRoomManager] MPCamManager not found during initialization.");
         }
 
         var durationLog = _levelConfig != null ? _levelConfig.Duration : 0;
@@ -329,32 +342,49 @@ public class MPRoomManager : MonoBehaviour
 
     public void RestartLevel()
     {
-        if (_localPlayer == null)
+        if (_chapterInfo == null)
         {
-            _localPlayer = FindObjectOfType<MPSoulActor>();
+            Debug.LogWarning("[MPRoomManager] RestartLevel called without initialized stage; re-initializing.");
+            InitializeStage(_stageId);
+            return;
         }
 
-        // Clear NPCs
-        var npcsSnapshot = new List<MPNpcSoulActor>(_npcs);
-        foreach (var npc in npcsSnapshot)
-        {
-            if (npc != null)
-            {
-                var poolKey = npc.GetPoolKey();
-                PoolManager.DespawnItemToPool(string.IsNullOrEmpty(poolKey) ? _enemyPoolKey : poolKey, npc);
-            }
-        }
-        _npcs.Clear();
+        ClearNpcs();
         _actors.Clear();
         _aliveEnemyCount = 0;
 
-        // Reset player state/position
         ResetPlayerForRestart();
 
+        // Reset level state flags and timers
         _isPaused = false;
         _isLevelOver = false;
         _isLevelRunning = false;
+        _isWin = false;
+        _currentTime = 0f;
+        _currentSecond = 0;
+        _lastSecond = -1;
         _state = RoomState.Running;
+
+        // Rebuild wave mapping to ensure consistency with current chapter info
+        _secondToWaves.Clear();
+        if (_chapterInfo.Monsters != null)
+        {
+            foreach (var wave in _chapterInfo.Monsters)
+            {
+                if (wave == null)
+                {
+                    continue;
+                }
+
+                if (!_secondToWaves.TryGetValue(wave.Time, out var list))
+                {
+                    list = new List<NPCSpawnData>();
+                    _secondToWaves[wave.Time] = list;
+                }
+                list.Add(wave);
+            }
+        }
+
         BeginTimeCounting();
         Debug.Log("[MPRoomManager] Level restarted.");
     }
@@ -396,10 +426,19 @@ public class MPRoomManager : MonoBehaviour
         _localPlayer.transform.rotation = _playerSpawnRotation;
         _localPlayer.ResetForRestart();
 
+        if (_camManager == null)
+        {
+            _camManager = MPCamManager.Inst != null ? MPCamManager.Inst : FindObjectOfType<MPCamManager>();
+        }
+
         if (_camManager != null)
         {
             _camManager.OnInitCam(_localPlayer);
             _localPlayer.OnSetMPCamMgr(_camManager);
+        }
+        else
+        {
+            Debug.LogWarning("[MPRoomManager] MPCamManager not found on restart.");
         }
     }
     #endregion
@@ -448,15 +487,28 @@ public class MPRoomManager : MonoBehaviour
 
     private void TickActors(float deltaTime)
     {
-        for (var i = 0; i < _actors.Count; i++)
+        for (var i = _actors.Count - 1; i >= 0; i--)
         {
             var actor = _actors[i];
-            if (actor == null || actor.IsDead)
+            if (actor == null)
+            {
+                _actors.RemoveAt(i);
+                continue;
+            }
+
+            if (actor.IsDead)
             {
                 continue;
             }
 
-            actor.TickActor(deltaTime);
+            try
+            {
+                actor.TickActor(deltaTime);
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"[MPRoomManager] Exception ticking actor {actor.name}: {ex}");
+            }
         }
     }
 
@@ -686,6 +738,20 @@ public class MPRoomManager : MonoBehaviour
                 npc.SetPaused(paused);
             }
         }
+    }
+
+    private void ClearNpcs()
+    {
+        var npcsSnapshot = new List<MPNpcSoulActor>(_npcs);
+        foreach (var npc in npcsSnapshot)
+        {
+            if (npc != null)
+            {
+                var poolKey = npc.GetPoolKey();
+                PoolManager.DespawnItemToPool(string.IsNullOrEmpty(poolKey) ? _enemyPoolKey : poolKey, npc);
+            }
+        }
+        _npcs.Clear();
     }
     #endregion
 }

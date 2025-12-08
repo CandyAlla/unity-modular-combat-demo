@@ -11,12 +11,19 @@ public class PoolModelCtrl : MonoBehaviour
         private readonly GameObject _prefab;
         private readonly Queue<GameObject> _pool = new Queue<GameObject>();
         private readonly Transform _defaultParent;
+        private readonly int _prefabGuid;
 
         public ObjectPool(GameObject prefab, Transform defaultParent, int preload)
         {
             _prefab = prefab;
             _defaultParent = defaultParent;
+            _prefabGuid = prefab != null ? prefab.GetInstanceID() : 0;
             Preload(preload);
+        }
+
+        public bool PrefabGuidMatches(GameObject prefab)
+        {
+            return prefab != null && prefab.GetInstanceID() == _prefabGuid;
         }
 
         public GameObject Get(Vector3 position, Quaternion rotation, Transform parentOverride = null)
@@ -111,7 +118,15 @@ public class PoolModelCtrl : MonoBehaviour
 
         if (_pools.ContainsKey(key))
         {
-            return;
+            var existing = _pools[key];
+            if (existing.PrefabGuidMatches(prefab))
+            {
+                return;
+            }
+
+            Debug.LogWarning($"[PoolModelCtrl] Pool key collision for {key}; existing prefab differs. Replacing pool.");
+            existing.Clear();
+            _pools.Remove(key);
         }
 
         var pool = new ObjectPool(prefab, _runtimeActorsRoot, preloadCount);

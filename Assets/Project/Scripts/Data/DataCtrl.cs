@@ -39,6 +39,7 @@ public class DataCtrl
         _stageEntries.Clear();
         LoadNpcPrefabConfigs();
         var configs = Resources.LoadAll<MainChapterConfig>(string.Empty);
+        System.Array.Sort(configs, (a, b) => string.CompareOrdinal(a != null ? a.name : string.Empty, b != null ? b.name : string.Empty));
 
         foreach (var config in configs)
         {
@@ -47,11 +48,35 @@ public class DataCtrl
                 continue;
             }
 
+            if (config.StageId <= 0)
+            {
+                Debug.LogWarning($"[DataCtrl] Skip config {config.name}: invalid StageId {config.StageId}");
+                continue;
+            }
+
+            if (_dicStageInfos.ContainsKey(config.StageId))
+            {
+                Debug.LogWarning($"[DataCtrl] Duplicate StageId {config.StageId} from config {config.name}, skipping.");
+                continue;
+            }
+
+            var waves = config.Waves ?? new List<NPCSpawnData>();
+            var sanitizedWaves = new List<NPCSpawnData>();
+            foreach (var wave in waves)
+            {
+                if (wave == null)
+                {
+                    continue;
+                }
+
+                sanitizedWaves.Add(wave);
+            }
+
             var info = new MainChapterInfo
             {
                 StageId = config.StageId,
                 Duration = config.Duration,
-                Monsters = new List<NPCSpawnData>(config.Waves ?? new List<NPCSpawnData>())
+                Monsters = sanitizedWaves
             };
 
             _dicStageInfos[info.StageId] = info;
@@ -108,6 +133,7 @@ public class DataCtrl
     private void LoadNpcPrefabConfigs()
     {
         var prefabConfigs = Resources.LoadAll<NpcPrefabConfig>(string.Empty);
+        System.Array.Sort(prefabConfigs, (a, b) => string.CompareOrdinal(a != null ? a.name : string.Empty, b != null ? b.name : string.Empty));
         foreach (var cfg in prefabConfigs)
         {
             if (cfg == null || cfg.Entries == null)
@@ -119,7 +145,17 @@ public class DataCtrl
             {
                 if (entry != null && entry.Prefab != null)
                 {
+                    if (_npcPrefabLookup.ContainsKey(entry.NpcId))
+                    {
+                        Debug.LogWarning($"[DataCtrl] Duplicate npcId {entry.NpcId} in prefab configs; keeping first entry, skipping {cfg.name}.");
+                        continue;
+                    }
+
                     _npcPrefabLookup[entry.NpcId] = entry.Prefab;
+                }
+                else
+                {
+                    Debug.LogWarning("[DataCtrl] Prefab config entry missing prefab or null entry, skipped.");
                 }
             }
         }
