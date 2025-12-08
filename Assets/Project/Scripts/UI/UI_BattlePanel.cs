@@ -65,8 +65,8 @@ public class UI_BattlePanel : MonoBehaviour
         }
 
         var state = _roomManager.State;
-        var elapsed = _roomManager.ElapsedTime;
-        var duration = _roomManager.DurationSeconds;
+        var elapsed = _roomManager.IsLevelRunning ? _roomManager.GetCurrentTime() : 0f;
+        var duration = _roomManager.GetLevelDuration();
 
         _timerText.text = $"{GlobalHelper.FormatTime(elapsed)} / {GlobalHelper.FormatTime(duration)} ({state})";
     }

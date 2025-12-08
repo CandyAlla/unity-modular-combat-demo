@@ -105,6 +105,7 @@ public class MPNpcSoulActor : MPCharacterSoulActorBase
         IsDead = false;
         CurrentHp = MaxHp;
         _attackTimer = 0f;
+        _isPaused = false;
     }
 
     private void HandleAttack(float deltaTime, float sqrDistanceToPlayer)

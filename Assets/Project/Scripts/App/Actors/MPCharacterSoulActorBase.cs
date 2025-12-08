@@ -94,11 +94,16 @@ public class MPCharacterSoulActorBase : MonoBehaviour
         OnInitActor();
     }
 
-    private void ResetHealth()
+    protected void ResetHealth()
     {
         MaxHp = Mathf.Max(1, MaxHp);
         CurrentHp = MaxHp;
         IsDead = false;
+    }
+
+    public virtual void ResetActorState()
+    {
+        ResetHealth();
     }
     #endregion
 }

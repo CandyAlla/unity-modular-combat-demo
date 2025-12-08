@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -21,29 +22,38 @@ public class MPRoomManager : MonoBehaviour
     [SerializeField] private Transform _runtimeActorsRoot;
     [SerializeField] private string _enemyPoolKey = "Enemy_Dummy";
     [SerializeField] private MPCamManager _camManager;
+    [SerializeField] private UI_BattleSettlement _battleSettlementUI;
     #endregion
 
     #region Fields
     private RoomState _state = RoomState.NotStarted;
     private MainChapterInfo _chapterInfo;
     private readonly Dictionary<int, List<NPCSpawnData>> _secondToWaves = new Dictionary<int, List<NPCSpawnData>>();
-    private float _elapsedTime;
-    private int _lastProcessedSecond = -1;
-    private int _durationSeconds;
     private int _aliveEnemyCount;
     private bool _isPaused;
     [SerializeField] private MPSoulActor _localPlayer;
     private readonly List<MPCharacterSoulActorBase> _actors = new List<MPCharacterSoulActorBase>();
     private readonly List<MPNpcSoulActor> _npcs = new List<MPNpcSoulActor>();
+    private Vector3 _playerSpawnPosition;
+    private Quaternion _playerSpawnRotation;
+    [Header("Level Timing")]
+    [SerializeField] private LevelConfig _levelConfig;
+    private bool _isLevelRunning;
+    private bool _isLevelOver;
+    private bool _isWin;
+    private float _currentTime;
+    private int _currentSecond;
+    private int _lastSecond = -1;
     #endregion
 
     #region Properties
     public static MPRoomManager Inst { get; private set; }
     public RoomState State => _state;
-    public float ElapsedTime => _elapsedTime;
-    public int DurationSeconds => _durationSeconds;
     public int AliveEnemyCount => _aliveEnemyCount;
     public bool IsPaused => _isPaused;
+    public bool IsLevelRunning => _isLevelRunning;
+    public bool IsLevelOver => _isLevelOver;
+    public System.Action<int> OnLevelSecondTick;
     #endregion
 
     #region Unity Lifecycle
@@ -85,7 +95,10 @@ public class MPRoomManager : MonoBehaviour
             return;
         }
 
-        _durationSeconds = Mathf.Max(0, _chapterInfo.Duration);
+        if (_levelConfig == null)
+        {
+            _levelConfig = new LevelConfig { Duration = _chapterInfo.Duration };
+        }
         _secondToWaves.Clear();
         if (_chapterInfo.Monsters != null)
         {
@@ -101,10 +114,14 @@ public class MPRoomManager : MonoBehaviour
         }
 
         _state = RoomState.NotStarted;
-        _elapsedTime = 0f;
-        _lastProcessedSecond = -1;
         _aliveEnemyCount = 0;
         _isPaused = false;
+        _isLevelRunning = false;
+        _isLevelOver = false;
+        _isWin = false;
+        _currentTime = 0f;
+        _currentSecond = 0;
+        _lastSecond = -1;
         _actors.Clear();
 
         if (_localPlayer == null)
@@ -115,6 +132,8 @@ public class MPRoomManager : MonoBehaviour
         if (_localPlayer != null)
         {
             RegisterActor(_localPlayer);
+            _playerSpawnPosition = _localPlayer.transform.position;
+            _playerSpawnRotation = _localPlayer.transform.rotation;
         }
 
         if (_camManager == null)
@@ -128,7 +147,8 @@ public class MPRoomManager : MonoBehaviour
             _localPlayer.OnSetMPCamMgr(_camManager);
         }
 
-        Debug.Log($"[MPRoomManager] Initialized stage {_stageId} with duration {_durationSeconds}s and {_secondToWaves.Count} wave times.");
+        var durationLog = _levelConfig != null ? _levelConfig.Duration : 0;
+        Debug.Log($"[MPRoomManager] Initialized stage {_stageId} with duration {durationLog}s and {_secondToWaves.Count} wave times.");
     }
 
     public void StartBattle()
@@ -146,9 +166,8 @@ public class MPRoomManager : MonoBehaviour
         }
 
         _state = RoomState.Running;
-        _elapsedTime = 0f;
-        _lastProcessedSecond = -1;
         _isPaused = false;
+        BeginTimeCounting();
         Debug.Log("[MPRoomManager] Battle started.");
     }
 
@@ -176,17 +195,6 @@ public class MPRoomManager : MonoBehaviour
         _state = RoomState.Running;
         TogglePause();
         Debug.Log("[MPRoomManager] Battle resumed.");
-    }
-
-    public void EndBattle()
-    {
-        if (_state == RoomState.Finished)
-        {
-            return;
-        }
-
-        _state = RoomState.Finished;
-        Debug.Log($"[MPRoomManager] Battle finished at {_elapsedTime:F1}s.");
     }
 
     public void TogglePause()
@@ -234,8 +242,12 @@ public class MPRoomManager : MonoBehaviour
         }
 
         Debug.Log("[MPRoomManager] Player dead, ending battle (fail).");
-        EndBattle();
+        EndLevel(false);
     }
+
+    public float GetCurrentTime() => _currentTime;
+
+    public float GetLevelDuration() => _levelConfig != null ? _levelConfig.Duration : 0f;
 
     public void RegisterActor(MPCharacterSoulActorBase actor)
     {
@@ -247,6 +259,75 @@ public class MPRoomManager : MonoBehaviour
         _actors.Add(actor);
     }
 
+    public void BeginTimeCounting()
+    {
+        _isLevelRunning = true;
+        _isLevelOver = false;
+        _isWin = false;
+        _currentTime = 0f;
+        _currentSecond = 0;
+        _lastSecond = -1;
+    }
+
+    public void EndLevel(bool isWin)
+    {
+        EndTimeCounting(isWin);
+    }
+
+    private void EndTimeCounting(bool isWin)
+    {
+        if (_isLevelOver)
+        {
+            return;
+        }
+
+        _state = RoomState.Finished;
+        _isLevelOver = true;
+        _isLevelRunning = false;
+        _isWin = isWin;
+        _isPaused = true;
+        OnLevelOver(isWin);
+    }
+
+    private void OnLevelOver(bool isWin)
+    {
+        Debug.Log($"[MPRoomManager] Level over. Win={isWin}");
+
+        _battleSettlementUI?.SetTime(_currentTime);
+        _battleSettlementUI?.Show(isWin);
+    }
+
+    public void RestartLevel()
+    {
+        if (_localPlayer == null)
+        {
+            _localPlayer = FindObjectOfType<MPSoulActor>();
+        }
+
+        // Clear NPCs
+        var npcsSnapshot = new List<MPNpcSoulActor>(_npcs);
+        foreach (var npc in npcsSnapshot)
+        {
+            if (npc != null)
+            {
+                PoolManager.DespawnItemToPool(_enemyPoolKey, npc);
+            }
+        }
+        _npcs.Clear();
+        _actors.Clear();
+        _aliveEnemyCount = 0;
+
+        // Reset player state/position
+        ResetPlayerForRestart();
+
+        _isPaused = false;
+        _isLevelOver = false;
+        _isLevelRunning = false;
+        _state = RoomState.Running;
+        BeginTimeCounting();
+        Debug.Log("[MPRoomManager] Level restarted.");
+    }
+
     public void UnregisterActor(MPCharacterSoulActorBase actor)
     {
         if (actor == null)
@@ -256,48 +337,84 @@ public class MPRoomManager : MonoBehaviour
 
         _actors.Remove(actor);
     }
+
+    private void ResetPlayerForRestart()
+    {
+        if (_localPlayer == null)
+        {
+            _localPlayer = FindObjectOfType<MPSoulActor>();
+        }
+
+        if (_localPlayer == null)
+        {
+            Debug.LogWarning("[MPRoomManager] No local player to reset on restart.");
+            return;
+        }
+
+        if (!_actors.Contains(_localPlayer))
+        {
+            RegisterActor(_localPlayer);
+        }
+
+        if (!_localPlayer.gameObject.activeSelf)
+        {
+            _localPlayer.gameObject.SetActive(true);
+        }
+
+        _localPlayer.transform.position = _playerSpawnPosition;
+        _localPlayer.transform.rotation = _playerSpawnRotation;
+        _localPlayer.ResetForRestart();
+
+        if (_camManager != null)
+        {
+            _camManager.OnInitCam(_localPlayer);
+            _localPlayer.OnSetMPCamMgr(_camManager);
+        }
+    }
     #endregion
 
     #region Unity Lifecycle Updates
     private void Update()
     {
-        if (_state != RoomState.Running)
-        {
-            return;
-        }
-
-        if (_isPaused)
+        if (_state != RoomState.Running || _isPaused || !_isLevelRunning || _isLevelOver)
         {
             return;
         }
 
         var deltaTime = Time.deltaTime;
-
-        _elapsedTime += deltaTime;
-        var currentSecond = Mathf.FloorToInt(_elapsedTime);
-
-        for (var sec = _lastProcessedSecond + 1; sec <= currentSecond; sec++)
-        {
-            if (sec > _durationSeconds)
-            {
-                EndBattle();
-                break;
-            }
-
-            OnSecondTick(sec);
-            _lastProcessedSecond = sec;
-        }
-
-        if (_elapsedTime >= _durationSeconds && _state == RoomState.Running)
-        {
-            EndBattle();
-        }
-
+        TickLevel(deltaTime);
         TickActors(deltaTime);
     }
     #endregion
 
     #region Private Methods
+    private void TickLevel(float deltaTime)
+    {
+        _currentTime += deltaTime;
+        var second = Mathf.FloorToInt(_currentTime);
+        if (second != _lastSecond)
+        {
+            _currentSecond = second;
+            _lastSecond = second;
+            OnLevelSecondTickInternal(second);
+        }
+    }
+
+    private void OnLevelSecondTickInternal(int second)
+    {
+        OnLevelSecondTick?.Invoke(second);
+        OnSecondTick(second);
+
+        if (!_isLevelOver && _levelConfig != null && _currentTime >= _levelConfig.Duration)
+        {
+            var playerAlive = _localPlayer != null && !_localPlayer.IsDead;
+            if (playerAlive)
+            {
+                EndLevel(true);
+            }
+        }
+    }
+
     private void TickActors(float deltaTime)
     {
         for (var i = 0; i < _actors.Count; i++)
@@ -399,8 +516,8 @@ public class MPRoomManager : MonoBehaviour
             position = ResolveSpawnPositionByIndex(wave, iteration);
         }
 
-        var radius = Random.Range(0.5f, 1f);
-        var angle = Random.Range(0f, Mathf.PI * 2f);
+        var radius = UnityEngine.Random.Range(0.5f, 1f);
+        var angle = UnityEngine.Random.Range(0f, Mathf.PI * 2f);
         var offset = new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius);
 
         return position + offset;

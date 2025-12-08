@@ -106,6 +106,18 @@ public class MPSoulActor : MPCharacterSoulActorBase
         return _camManager;
     }
 
+    public void ResetForRestart()
+    {
+        _canControl = true;
+        ResetActorState();
+        var rb = GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.velocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+        }
+    }
+
     private void OnMove(InputAction.CallbackContext context)
     {
         _moveInput = context.ReadValue<Vector2>();
