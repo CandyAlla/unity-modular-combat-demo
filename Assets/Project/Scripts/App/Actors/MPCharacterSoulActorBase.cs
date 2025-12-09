@@ -44,6 +44,7 @@ public class MPCharacterSoulActorBase : MonoBehaviour
 
         var dmg = Mathf.Max(0, amount);
         CurrentHp = Mathf.Clamp(CurrentHp - dmg, 0, MaxHp);
+        Debug.Log($"[{name}] Took {dmg} damage. Current HP: {CurrentHp}");
         OnAfterTakeDamage(dmg);
 
         if (CurrentHp <= 0)

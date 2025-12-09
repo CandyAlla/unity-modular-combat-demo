@@ -15,6 +15,13 @@ public class MPSoulActor : MPCharacterSoulActorBase
     private Vector2 _moveInput;
     private bool _canControl = true;
     private MPCamManager _camManager;
+    private float _attackCooldownTimer;
+    #endregion
+
+    #region Constants
+    private const float ATTACK_COOLDOWN = 0.5f;
+    private const float ATTACK_RANGE = 10f;
+    private const int ATTACK_DAMAGE = 10;
     #endregion
 
     #region Unity Lifecycle
@@ -39,6 +46,14 @@ public class MPSoulActor : MPCharacterSoulActorBase
     private void OnDisable()
     {
         _input?.Disable();
+    }
+
+    private void Update()
+    {
+        if (_attackCooldownTimer > 0f)
+        {
+            _attackCooldownTimer -= Time.deltaTime;
+        }
     }
 
     protected override void OnDestroy()
@@ -122,6 +137,36 @@ public class MPSoulActor : MPCharacterSoulActorBase
     {
         _moveInput = context.ReadValue<Vector2>();
     }
+
+    private void OnAttack(InputAction.CallbackContext context)
+    {
+        if (!_canControl || _attackCooldownTimer > 0f)
+        {
+            return;
+        }
+
+        PerformAttack();
+    }
+
+    private void PerformAttack()
+    {
+        _attackCooldownTimer = ATTACK_COOLDOWN;
+        Debug.Log("[MPSoulActor] Attack performed!");
+
+        // Simple forward detection
+        var center = transform.position + transform.forward * 1.0f;
+        var hitColliders = Physics.OverlapSphere(center, ATTACK_RANGE);
+        
+        foreach (var hit in hitColliders)
+        {
+            var target = hit.GetComponent<MPCharacterSoulActorBase>();
+            if (target != null && target != this && !target.IsDead)
+            {
+                target.TakeDamage(ATTACK_DAMAGE);
+                Debug.Log($"[MPSoulActor] Hit target: {target.name}");
+            }
+        }
+    }
     #endregion
 
     #region Input Wrapper
@@ -137,6 +182,14 @@ public class MPSoulActor : MPCharacterSoulActorBase
         public void OnMove(InputAction.CallbackContext context)
         {
             _owner.OnMove(context);
+        }
+
+        public void OnAttack(InputAction.CallbackContext context)
+        {
+            if (context.performed)
+            {
+                _owner.OnAttack(context);
+            }
         }
     }
     #endregion
