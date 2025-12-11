@@ -30,9 +30,10 @@ public class MPRoomManager : MonoBehaviour
     [SerializeField] private Transform _runtimeActorsRoot;
     [SerializeField] private string _enemyPoolKey = "Enemy_Dummy";
     [SerializeField] private MPCamManager _camManager;
-    [SerializeField] private UI_BattleSettlement _battleSettlementUI;
     [Header("Fallback Prefabs")]
     [SerializeField] private GameObject _playerPrefab;
+    [SerializeField] private GameObject _floatTextPrefab;
+    [SerializeField] private MPSoulActor _localPlayer;
     #endregion
 
     #region Fields
@@ -43,18 +44,17 @@ public class MPRoomManager : MonoBehaviour
     private readonly Dictionary<int, string> _npcPoolKeyLookup = new Dictionary<int, string>();
     private int _aliveEnemyCount;
     private bool _isPaused;
-    [SerializeField] private MPSoulActor _localPlayer;
     private readonly List<MPCharacterSoulActorBase> _actors = new List<MPCharacterSoulActorBase>();
     private readonly List<MPNpcSoulActor> _npcs = new List<MPNpcSoulActor>();
     private Vector3 _playerSpawnPosition;
     private Quaternion _playerSpawnRotation;
     [Header("Level Timing")]
-    [SerializeField] private LevelConfig _levelConfig;
     private LevelStatus _levelStatus = LevelStatus.Idle;
     private bool _isWin;
     private float _currentTime;
     private int _currentSecond;
     private int _lastSecond = -1;
+    
     #endregion
 
     #region Properties
@@ -121,10 +121,6 @@ public class MPRoomManager : MonoBehaviour
             return;
         }
 
-        if (_levelConfig == null)
-        {
-            _levelConfig = new LevelConfig { Duration = _chapterInfo.Duration };
-        }
         _secondToWaves.Clear();
         var npcIds = new HashSet<int>();
         if (_chapterInfo.Monsters != null)
@@ -155,13 +151,16 @@ public class MPRoomManager : MonoBehaviour
 
             if (prefab != null)
             {
-                PoolManager.InitPoolItem<MPNpcSoulActor>(poolKey, prefab, _levelConfig != null ? Mathf.Max(0, _levelConfig.Duration / 10) : 2);
+                var preload = Mathf.Max(0, _chapterInfo.Duration / 10);
+                PoolManager.InitPoolItem<MPNpcSoulActor>(poolKey, prefab, preload);
             }
             else
             {
                 Debug.LogWarning($"[MPRoomManager] No prefab found for NPC {npcId}; spawns will be skipped.");
             }
         }
+        
+        PoolManager.InitPoolItem<SoulFloatingText>("UI_FloatText", _floatTextPrefab, 10);
 
         _state = RoomState.NotStarted;
         _aliveEnemyCount = 0;
@@ -208,7 +207,7 @@ public class MPRoomManager : MonoBehaviour
             Debug.LogWarning("[MPRoomManager] MPCamManager not found during initialization.");
         }
 
-        var durationLog = _levelConfig != null ? _levelConfig.Duration : 0;
+        var durationLog = _chapterInfo.Duration;
         Debug.Log($"[MPRoomManager] Initialized stage {_stageId} with duration {durationLog}s and {_secondToWaves.Count} wave times.");
     }
 
@@ -305,7 +304,7 @@ public class MPRoomManager : MonoBehaviour
 
     public float GetCurrentTime() => _currentTime;
 
-    public float GetLevelDuration() => _levelConfig != null ? _levelConfig.Duration : 0f;
+    public float GetCurrentStageDuration() => _chapterInfo != null ? _chapterInfo.Duration : 0f;
 
     public void RegisterActor(MPCharacterSoulActorBase actor)
     {
@@ -496,7 +495,7 @@ public class MPRoomManager : MonoBehaviour
         OnLevelSecondTick?.Invoke(second);
         OnSecondTick(second);
 
-        if (_levelStatus == LevelStatus.Running && _levelConfig != null && _currentTime >= _levelConfig.Duration)
+        if (_levelStatus == LevelStatus.Running &&  _currentTime >= GetCurrentStageDuration())
         {
             var playerAlive = _localPlayer != null && !_localPlayer.IsDead;
             if (playerAlive)

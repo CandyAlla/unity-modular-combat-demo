@@ -634,6 +634,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b670a7a88a4043a1abd34c2a2df2b4fd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _uiKey: 
   _openCurve:
     serializedVersion: 2
     m_Curve:
@@ -686,6 +687,7 @@ MonoBehaviour:
   _closeDuration: 0.15
   _openScale: {x: 1, y: 1, z: 1}
   _closedScale: {x: 0.95, y: 0.95, z: 0.95}
+  _defaultSelectable: {fileID: 0}
   _onOpenCompleted:
     m_PersistentCalls:
       m_Calls: []
@@ -1901,6 +1903,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 259e3bac73754e4f81a435ef6268690b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _uiKey: 
   _openCurve:
     serializedVersion: 2
     m_Curve:
@@ -1953,6 +1956,7 @@ MonoBehaviour:
   _closeDuration: 0.15
   _openScale: {x: 1, y: 1, z: 1}
   _closedScale: {x: 0.95, y: 0.95, z: 0.95}
+  _defaultSelectable: {fileID: 0}
   _onOpenCompleted:
     m_PersistentCalls:
       m_Calls: []
@@ -1999,9 +2003,9 @@ MonoBehaviour:
   _runtimeActorsRoot: {fileID: 2141540130}
   _enemyPoolKey: Enemy_Dummy
   _camManager: {fileID: 963194229}
-  _battleSettlementUI: {fileID: 458005008}
+  _playerPrefab: {fileID: 6616821203971370219, guid: becb00e298bc641e580b2e35c56990d4, type: 3}
+  _floatTextPrefab: {fileID: 8783768405454366830, guid: d49cff124bf8b4970b74d2dd21ba80ab, type: 3}
   _localPlayer: {fileID: 229169635}
-  _levelConfig: {fileID: 0}
 --- !u!4 &1450710313
 Transform:
   m_ObjectHideFlags: 0

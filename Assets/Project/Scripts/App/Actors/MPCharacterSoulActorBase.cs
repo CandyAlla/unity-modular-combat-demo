@@ -45,6 +45,7 @@ public class MPCharacterSoulActorBase : MonoBehaviour
         var dmg = Mathf.Max(0, amount);
         CurrentHp = Mathf.Clamp(CurrentHp - dmg, 0, MaxHp);
         Debug.Log($"[{name}] Took {dmg} damage. Current HP: {CurrentHp}");
+        ShowFloatText(dmg, FloatTextType.Damage);
         OnAfterTakeDamage(dmg);
 
         if (CurrentHp <= 0)
@@ -105,6 +106,30 @@ public class MPCharacterSoulActorBase : MonoBehaviour
     public virtual void ResetActorState()
     {
         ResetHealth();
+    }
+    protected void ShowFloatText(int value, FloatTextType type)
+    {
+        if (PoolManager.Inst == null) return;
+
+        // Simple random offset for variety
+        var offset = new Vector3(Random.Range(-0.5f, 0.5f), 2.0f, Random.Range(-0.5f, 0.5f));
+        var pos = transform.position + offset;
+
+        var textObj = PoolManager.SpawnItemFromPool<SoulFloatingText>("UI_FloatText", pos, Quaternion.identity);
+        if (textObj != null)
+        {
+            var defaults = FloatTextConfigProvider.GetDefaults(type);
+            var info = new FloatTextInfo
+            {
+                Type = type,
+                Value = value,
+                Position = pos,
+                Duration = defaults.Duration,
+                MoveSpeed = defaults.MoveSpeed,
+                Color = defaults.Color
+            };
+            textObj.Init(info);
+        }
     }
     #endregion
 }

@@ -76,7 +76,7 @@ public class UI_BattlePanel : UIBase
 
         var state = _roomManager.State;
         var elapsed = _roomManager.IsLevelRunning ? _roomManager.GetCurrentTime() : 0f;
-        var duration = _roomManager.GetLevelDuration();
+        var duration = _roomManager.GetCurrentStageDuration();
 
         _timerText.text = $"{GlobalHelper.FormatTime(elapsed)} / {GlobalHelper.FormatTime(duration)} ({state})";
     }

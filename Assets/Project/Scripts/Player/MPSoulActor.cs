@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -192,5 +193,16 @@ public class MPSoulActor : MPCharacterSoulActorBase
             }
         }
     }
+    #endregion
+
+    #region Editor
+
+    private void OnDrawGizmos()
+    {
+        Gizmos.color = Color.red;
+        var center = transform.position + transform.forward * 1.0f;
+        Gizmos.DrawWireSphere(center, ATTACK_RANGE);
+    }
+    
     #endregion
 }
