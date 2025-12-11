@@ -94,12 +94,9 @@ public class MPSoulActor : MPCharacterSoulActorBase
 
     protected override void OnBeforeDeath()
     {
-        if (_roomManager != null)
-        {
-            _roomManager.OnPlayerDead();
-        }
-
+        // Base class raises EventBus event
         _canControl = false;
+        base.OnBeforeDeath();
     }
 
     protected override void OnAfterDeath()

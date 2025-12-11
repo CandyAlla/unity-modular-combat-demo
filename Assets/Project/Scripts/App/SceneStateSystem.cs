@@ -67,6 +67,9 @@ public class SceneStateSystem
             _currentManager.DoBeforeLeaving();
         }
 
+        // Clear global event bus to avoid stale scene references
+        EventBus.OnClearAllDicDELEvents();
+
         var sceneName = ResolveSceneName(target);
         if (string.IsNullOrEmpty(sceneName))
         {

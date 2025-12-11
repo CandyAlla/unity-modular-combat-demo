@@ -79,7 +79,17 @@ public class MPCharacterSoulActorBase : MonoBehaviour
     protected virtual void OnUpdatePlayerMovement(float deltaTime) { }
     protected virtual void OnUpdateNpcMovement(float deltaTime) { }
     protected virtual void OnAfterTakeDamage(int damage) { }
-    protected virtual void OnBeforeDeath() { }
+    protected virtual void OnBeforeDeath()
+    {
+        if (_isPlayer)
+        {
+            EventBus.OnValueChange(new PlayerDeadEvent { Actor = this as MPSoulActor });
+        }
+        else
+        {
+            EventBus.OnValueChange(new EnemyDeadEvent { Actor = this as MPNpcSoulActor });
+        }
+    }
     protected virtual void OnAfterDeath() { }
     #endregion
 
@@ -118,15 +128,15 @@ public class MPCharacterSoulActorBase : MonoBehaviour
         var textObj = PoolManager.SpawnItemFromPool<SoulFloatingText>("UI_FloatText", pos, Quaternion.identity);
         if (textObj != null)
         {
-            var defaults = FloatTextConfigProvider.GetDefaults(type);
+            // var defaults = FloatTextConfigProvider.GetDefaults(type); // Class missing, reverting to simple defaults
             var info = new FloatTextInfo
             {
                 Type = type,
                 Value = value,
                 Position = pos,
-                Duration = defaults.Duration,
-                MoveSpeed = defaults.MoveSpeed,
-                Color = defaults.Color
+                Duration = 1.0f,
+                MoveSpeed = 2.0f,
+                Color = Color.white // Default
             };
             textObj.Init(info);
         }

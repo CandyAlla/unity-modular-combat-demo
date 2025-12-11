@@ -93,7 +93,8 @@ public class MPNpcSoulActor : MPCharacterSoulActorBase
             _agent.enabled = false;
         }
 
-        _roomManager?.OnEnemyDead(this);
+        // Base class raises EventBus event
+        base.OnBeforeDeath();
     }
 
     protected override void OnAfterDeath()

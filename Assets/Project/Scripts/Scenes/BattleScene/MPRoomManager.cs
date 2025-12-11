@@ -91,6 +91,18 @@ public class MPRoomManager : MonoBehaviour
             Inst = null;
         }
     }
+
+    private void OnEnable()
+    {
+        EventBus.OnAttach<PlayerDeadEvent>(OnPlayerDeadEvent);
+        EventBus.OnAttach<EnemyDeadEvent>(OnEnemyDeadEvent);
+    }
+
+    private void OnDisable()
+    {
+        EventBus.OnDetach<PlayerDeadEvent>(OnPlayerDeadEvent);
+        EventBus.OnDetach<EnemyDeadEvent>(OnEnemyDeadEvent);
+    }
     #endregion
 
     #region Public Methods
@@ -156,8 +168,8 @@ public class MPRoomManager : MonoBehaviour
             }
             else
             {
-                Debug.LogWarning($"[MPRoomManager] No prefab found for NPC {npcId}; spawns will be skipped.");
-            }
+            Debug.LogWarning($"[MPRoomManager] No prefab found for NPC {npcId}; spawns will be skipped.");
+        }
         }
         
         PoolManager.InitPoolItem<SoulFloatingText>("UI_FloatText", _floatTextPrefab, 10);
@@ -291,6 +303,11 @@ public class MPRoomManager : MonoBehaviour
         Debug.Log("[MPRoomManager] Enemy dead reported.");
     }
 
+    private void OnEnemyDeadEvent(EnemyDeadEvent evt)
+    {
+        OnEnemyDead(evt.Actor);
+    }
+
     public void OnPlayerDead()
     {
         if (_state != RoomState.Running)
@@ -300,6 +317,11 @@ public class MPRoomManager : MonoBehaviour
 
         Debug.Log("[MPRoomManager] Player dead, ending battle (fail).");
         EndLevel(false);
+    }
+
+    private void OnPlayerDeadEvent(PlayerDeadEvent evt)
+    {
+        OnPlayerDead();
     }
 
     public float GetCurrentTime() => _currentTime;
