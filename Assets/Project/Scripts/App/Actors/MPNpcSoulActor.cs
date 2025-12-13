@@ -42,6 +42,13 @@ public class MPNpcSoulActor : MPCharacterSoulActorBase
         AttackInterval = attrs.AttackInterval;
         AttackRange = attrs.AttackRange;
 
+        if (_attributeComponent != null)
+        {
+            _attributeComponent.SetBaseValue(AttributeType.MoveSpeed, _moveSpeed);
+            _attributeComponent.SetBaseValue(AttributeType.AttackPower, AttackDamage);
+            _attributeComponent.SetBaseValue(AttributeType.MaxHp, MaxHp);
+        }
+
         if (_agent != null)
         {
             _agent.speed = _moveSpeed;
@@ -98,7 +105,17 @@ public class MPNpcSoulActor : MPCharacterSoulActorBase
             _agent.isStopped = false;
         }
 
-        _agent.speed = _moveSpeed;
+        float currentSpeed = _moveSpeed;
+        if (_attributeComponent != null)
+        {
+            currentSpeed = _attributeComponent.GetValue(AttributeType.MoveSpeed);
+        }
+        else
+        {
+             // Fallback if component missing, though base ensures it exists
+             currentSpeed = _moveSpeed;
+        }
+        _agent.speed = currentSpeed;
         _agent.destination = _playerTarget.transform.position;
 
         var dir = _playerTarget.transform.position - transform.position;

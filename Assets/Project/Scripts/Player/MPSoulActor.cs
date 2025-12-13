@@ -55,6 +55,13 @@ public class MPSoulActor : MPCharacterSoulActorBase
         {
             _attackCooldownTimer -= Time.deltaTime;
         }
+
+        // DEBUG: Press K to add Speed Buff
+        if (Keyboard.current.kKey.wasPressedThisFrame)
+        {
+            Debug.Log("[MPSoulActor] Debug Input: Adding MoveSpeedUp Buff");
+            TryAddBuffStack(BuffType.MoveSpeedUp);
+        }
     }
 
     protected override void OnDestroy()
@@ -68,6 +75,10 @@ public class MPSoulActor : MPCharacterSoulActorBase
     {
         _isPlayer = true;
         MaxHp = MaxHp <= 0 ? 100 : MaxHp;
+        if (_attributeComponent != null)
+        {
+            _attributeComponent.SetBaseValue(AttributeType.MoveSpeed, _moveSpeed);
+        }
     }
 
     protected override void OnUpdatePlayerMovement(float deltaTime)
@@ -87,7 +98,9 @@ public class MPSoulActor : MPCharacterSoulActorBase
         if (inputDir.sqrMagnitude > 0.001f)
         {
             var worldDir = inputDir.normalized;
-            transform.position += worldDir * (_moveSpeed * deltaTime);
+
+            var currentSpeed = _attributeComponent != null ? _attributeComponent.GetValue(AttributeType.MoveSpeed) : _moveSpeed;
+            transform.position += worldDir * (currentSpeed * deltaTime);
             transform.rotation = Quaternion.LookRotation(worldDir, Vector3.up);
         }
     }

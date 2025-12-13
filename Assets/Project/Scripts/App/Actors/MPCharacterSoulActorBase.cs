@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 // MPCharacterSoulActorBase provides shared HP and update hooks for player/NPC actors.
 // Movement and death handling are delegated to overrides; base enforces simple damage flow.
@@ -11,11 +12,15 @@ public class MPCharacterSoulActorBase : MonoBehaviour
 
     #region Properties
     public bool IsDead { get; protected set; }
+    public BuffLayerMgr BuffLayerMgr => _buffLayerMgr;
+    public MPAttributeComponent AttributeComponent => _attributeComponent;
     #endregion
 
     #region Fields
     protected bool _isPlayer;
     private bool _initialized;
+    protected BuffLayerMgr _buffLayerMgr;
+    protected MPAttributeComponent _attributeComponent;
     #endregion
 
     #region Unity Lifecycle
@@ -89,6 +94,8 @@ public class MPCharacterSoulActorBase : MonoBehaviour
         {
             EventBus.OnValueChange(new EnemyDeadEvent { Actor = this as MPNpcSoulActor });
         }
+
+        _buffLayerMgr?.ClearAll();
     }
     protected virtual void OnAfterDeath() { }
     #endregion
@@ -104,6 +111,19 @@ public class MPCharacterSoulActorBase : MonoBehaviour
         _initialized = true;
         ResetHealth();
         OnInitActor();
+
+        if (_attributeComponent == null)
+        {
+            _attributeComponent = new MPAttributeComponent();
+            // Default initialization - can be overridden or loaded from config later
+            _attributeComponent.Initialize(3.5f, 10, MaxHp);
+        }
+
+        if (_buffLayerMgr == null)
+        {
+            var lookup = DataCtrl.Instance.GetBuffConfigLookup();
+            _buffLayerMgr = new BuffLayerMgr(lookup, _attributeComponent);
+        }
     }
 
     protected void ResetHealth()
@@ -116,6 +136,22 @@ public class MPCharacterSoulActorBase : MonoBehaviour
     public virtual void ResetActorState()
     {
         ResetHealth();
+        _buffLayerMgr?.ClearAll();
+    }
+
+    public void TryAddBuffStack(BuffType type)
+    {
+        _buffLayerMgr?.TryAddStack(type);
+    }
+
+    public void ClearAllBuffs()
+    {
+        _buffLayerMgr?.ClearAll();
+    }
+
+    public void TickBuffs(float deltaTime)
+    {
+        _buffLayerMgr?.Tick(deltaTime);
     }
     protected void ShowFloatText(int value, FloatTextType type)
     {

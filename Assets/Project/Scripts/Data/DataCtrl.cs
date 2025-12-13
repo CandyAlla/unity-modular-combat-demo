@@ -23,6 +23,7 @@ public class DataCtrl
     private readonly List<StageEntry> _stageEntries = new List<StageEntry>();
     private readonly Dictionary<int, NpcAttributesConfig.NpcAttributesEntry> _npcAttributesLookup = new Dictionary<int, NpcAttributesConfig.NpcAttributesEntry>();
     private readonly Dictionary<int, HeroAttributesConfig.HeroAttributesEntry> _heroAttributesLookup = new Dictionary<int, HeroAttributesConfig.HeroAttributesEntry>();
+    private readonly Dictionary<BuffType, BuffConfig.BuffEntry> _buffConfigLookup = new Dictionary<BuffType, BuffConfig.BuffEntry>();
     private bool _initialized;
 
     private DataCtrl() { }
@@ -41,8 +42,10 @@ public class DataCtrl
         _stageEntries.Clear();
         _npcAttributesLookup.Clear();
         _heroAttributesLookup.Clear();
+        _buffConfigLookup.Clear();
         LoadNpcAttributesConfig();
         LoadHeroAttributesConfig();
+        LoadBuffConfig();
         var configs = Resources.LoadAll<MainChapterConfig>(string.Empty);
         System.Array.Sort(configs, (a, b) => string.CompareOrdinal(a != null ? a.name : string.Empty, b != null ? b.name : string.Empty));
 
@@ -145,7 +148,8 @@ public class DataCtrl
         var prefabCount = _npcPrefabLookup.Count;
         var npcAttrCount = _npcAttributesLookup.Count;
         var heroAttrCount = _heroAttributesLookup.Count;
-        return $"Stages: {stageCount}, NPC prefabs: {prefabCount}, NPC attrs: {npcAttrCount}, Hero attrs: {heroAttrCount}";
+        var buffCount = _buffConfigLookup.Count;
+        return $"Stages: {stageCount}, NPC prefabs: {prefabCount}, NPC attrs: {npcAttrCount}, Hero attrs: {heroAttrCount}, Buffs: {buffCount}";
     }
 
     public NpcAttributesConfig.NpcAttributesEntry GetNpcAttributes(int npcId)
@@ -168,6 +172,17 @@ public class DataCtrl
         }
 
         return null;
+    }
+
+    public Dictionary<BuffType, BuffConfig.BuffEntry> GetBuffConfigLookup()
+    {
+        return new Dictionary<BuffType, BuffConfig.BuffEntry>(_buffConfigLookup);
+    }
+
+    public BuffConfig.BuffEntry GetBuffConfig(BuffType type)
+    {
+        _buffConfigLookup.TryGetValue(type, out var entry);
+        return entry;
     }
     #endregion
 
@@ -237,6 +252,34 @@ public class DataCtrl
         }
 
         Debug.Log($"[DataCtrl] Loaded Hero attributes: {_heroAttributesLookup.Count}");
+    }
+
+    private void LoadBuffConfig()
+    {
+        var cfg = Resources.Load<BuffConfig>("Configs/BuffConfig");
+        if (cfg == null || cfg.Entries == null)
+        {
+            Debug.LogWarning("[DataCtrl] BuffConfig not found or Entries is null.");
+            return;
+        }
+
+        foreach (var entry in cfg.Entries)
+        {
+            if (entry == null)
+            {
+                continue;
+            }
+
+            if (_buffConfigLookup.ContainsKey(entry.Type))
+            {
+                Debug.LogWarning($"[DataCtrl] Duplicate buff type {entry.Type}, skipping.");
+                continue;
+            }
+
+            _buffConfigLookup[entry.Type] = entry;
+        }
+
+        Debug.Log($"[DataCtrl] Loaded Buff entries: {_buffConfigLookup.Count}");
     }
     #endregion
 }

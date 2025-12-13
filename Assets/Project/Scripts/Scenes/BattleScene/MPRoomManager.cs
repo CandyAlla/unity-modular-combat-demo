@@ -545,6 +545,7 @@ public class MPRoomManager : MonoBehaviour
 
             try
             {
+                actor.TickBuffs(deltaTime);
                 actor.TickActor(deltaTime);
             }
             catch (System.Exception ex)
