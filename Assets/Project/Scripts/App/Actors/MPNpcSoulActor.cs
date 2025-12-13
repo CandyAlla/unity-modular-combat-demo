@@ -28,6 +28,26 @@ public class MPNpcSoulActor : MPCharacterSoulActorBase
         ResetState();
     }
 
+    public void ApplyAttributes(NpcAttributesConfig.NpcAttributesEntry attrs)
+    {
+        if (attrs == null)
+        {
+            return;
+        }
+
+        MaxHp = attrs.MaxHp;
+        CurrentHp = MaxHp;
+        _moveSpeed = attrs.MoveSpeed;
+        AttackDamage = attrs.AttackDamage;
+        AttackInterval = attrs.AttackInterval;
+        AttackRange = attrs.AttackRange;
+
+        if (_agent != null)
+        {
+            _agent.speed = _moveSpeed;
+        }
+    }
+
     public void SetPoolKey(string poolKey)
     {
         if (!string.IsNullOrEmpty(poolKey))

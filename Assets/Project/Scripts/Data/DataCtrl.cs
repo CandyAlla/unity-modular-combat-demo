@@ -21,6 +21,8 @@ public class DataCtrl
     private readonly Dictionary<int, MainChapterInfo> _dicStageInfos = new Dictionary<int, MainChapterInfo>();
     private readonly Dictionary<int, GameObject> _npcPrefabLookup = new Dictionary<int, GameObject>();
     private readonly List<StageEntry> _stageEntries = new List<StageEntry>();
+    private readonly Dictionary<int, NpcAttributesConfig.NpcAttributesEntry> _npcAttributesLookup = new Dictionary<int, NpcAttributesConfig.NpcAttributesEntry>();
+    private readonly Dictionary<int, HeroAttributesConfig.HeroAttributesEntry> _heroAttributesLookup = new Dictionary<int, HeroAttributesConfig.HeroAttributesEntry>();
     private bool _initialized;
 
     private DataCtrl() { }
@@ -37,7 +39,10 @@ public class DataCtrl
         _dicStageInfos.Clear();
         _npcPrefabLookup.Clear();
         _stageEntries.Clear();
-        LoadNpcPrefabConfigs();
+        _npcAttributesLookup.Clear();
+        _heroAttributesLookup.Clear();
+        LoadNpcAttributesConfig();
+        LoadHeroAttributesConfig();
         var configs = Resources.LoadAll<MainChapterConfig>(string.Empty);
         System.Array.Sort(configs, (a, b) => string.CompareOrdinal(a != null ? a.name : string.Empty, b != null ? b.name : string.Empty));
 
@@ -138,42 +143,100 @@ public class DataCtrl
     {
         var stageCount = _dicStageInfos.Count;
         var prefabCount = _npcPrefabLookup.Count;
-        return $"Stages: {stageCount}, NPC prefabs: {prefabCount}";
+        var npcAttrCount = _npcAttributesLookup.Count;
+        var heroAttrCount = _heroAttributesLookup.Count;
+        return $"Stages: {stageCount}, NPC prefabs: {prefabCount}, NPC attrs: {npcAttrCount}, Hero attrs: {heroAttrCount}";
+    }
+
+    public NpcAttributesConfig.NpcAttributesEntry GetNpcAttributes(int npcId)
+    {
+        _npcAttributesLookup.TryGetValue(npcId, out var attr);
+        return attr;
+    }
+
+    public HeroAttributesConfig.HeroAttributesEntry GetHeroAttributes(int heroId = 1)
+    {
+        if (_heroAttributesLookup.TryGetValue(heroId, out var entry))
+        {
+            return entry;
+        }
+
+        // fallback to first available entry
+        foreach (var kv in _heroAttributesLookup)
+        {
+            return kv.Value;
+        }
+
+        return null;
     }
     #endregion
 
     #region Private Methods
-    private void LoadNpcPrefabConfigs()
+    private void LoadNpcAttributesConfig()
     {
-        var prefabConfigs = Resources.LoadAll<NpcPrefabConfig>(string.Empty);
-        System.Array.Sort(prefabConfigs, (a, b) => string.CompareOrdinal(a != null ? a.name : string.Empty, b != null ? b.name : string.Empty));
-        foreach (var cfg in prefabConfigs)
+        var cfg = Resources.Load<NpcAttributesConfig>("Configs/NpcAttributesConfig");
+        if (cfg == null || cfg.Entries == null)
         {
-            if (cfg == null || cfg.Entries == null)
+            Debug.LogWarning("[DataCtrl] NpcAttributesConfig not found or empty.");
+            return;
+        }
+
+        foreach (var entry in cfg.Entries)
+        {
+            if (entry == null)
             {
                 continue;
             }
 
-            foreach (var entry in cfg.Entries)
+            if (_npcAttributesLookup.ContainsKey(entry.NpcId))
             {
-                if (entry != null && entry.Prefab != null)
-                {
-                    if (_npcPrefabLookup.ContainsKey(entry.NpcId))
-                    {
-                        Debug.LogWarning($"[DataCtrl] Duplicate npcId {entry.NpcId} in prefab configs; keeping first entry, skipping {cfg.name}.");
-                        continue;
-                    }
+                Debug.LogWarning($"[DataCtrl] Duplicate NPC attr id {entry.NpcId}, skipping.");
+                continue;
+            }
 
-                    _npcPrefabLookup[entry.NpcId] = entry.Prefab;
+            _npcAttributesLookup[entry.NpcId] = entry;
+            if (entry.Prefab != null)
+            {
+                if (_npcPrefabLookup.ContainsKey(entry.NpcId))
+                {
+                    Debug.LogWarning($"[DataCtrl] Duplicate NPC prefab id {entry.NpcId}, keeping first.");
                 }
                 else
                 {
-                    Debug.LogWarning("[DataCtrl] Prefab config entry missing prefab or null entry, skipped.");
+                    _npcPrefabLookup[entry.NpcId] = entry.Prefab;
                 }
             }
         }
 
-        Debug.Log($"[DataCtrl] Loaded NPC prefab mappings: {_npcPrefabLookup.Count}");
+        Debug.Log($"[DataCtrl] Loaded NPC attributes: {_npcAttributesLookup.Count}, prefabs: {_npcPrefabLookup.Count}");
+    }
+
+    private void LoadHeroAttributesConfig()
+    {
+        var cfg = Resources.Load<HeroAttributesConfig>("Configs/HeroAttributesConfig");
+        if (cfg == null || cfg.Entries == null)
+        {
+            Debug.LogWarning("[DataCtrl] HeroAttributesConfig not found.");
+            return;
+        }
+
+        foreach (var entry in cfg.Entries)
+        {
+            if (entry == null)
+            {
+                continue;
+            }
+
+            if (_heroAttributesLookup.ContainsKey(entry.HeroId))
+            {
+                Debug.LogWarning($"[DataCtrl] Duplicate hero attr id {entry.HeroId}, skipping.");
+                continue;
+            }
+
+            _heroAttributesLookup[entry.HeroId] = entry;
+        }
+
+        Debug.Log($"[DataCtrl] Loaded Hero attributes: {_heroAttributesLookup.Count}");
     }
     #endregion
 }

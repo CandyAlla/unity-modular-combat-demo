@@ -586,11 +586,12 @@ public class MPRoomManager : MonoBehaviour
         }
 
         var spawnCount = Mathf.Max(0, wave.NpcCount);
+        var npcAttrs = DataCtrl.Instance.GetNpcAttributes(wave.NpcId);
 
         for (var i = 0; i < spawnCount; i++)
         {
             var position = ResolveSpawnPositionForSpawn(basePos, wave, i);
-            SpawnEnemy(prefab, poolKey, position);
+            SpawnEnemy(wave.NpcId, npcAttrs, prefab, poolKey, position);
         }
     }
 
@@ -650,7 +651,7 @@ public class MPRoomManager : MonoBehaviour
         return position + offset;
     }
 
-    private void SpawnEnemy(GameObject prefab, string poolKey, Vector3 position)
+    private void SpawnEnemy(int npcId, NpcAttributesConfig.NpcAttributesEntry attrs, GameObject prefab, string poolKey, Vector3 position)
     {
         GameObject enemy = null;
         if (PoolManager.Inst != null)
@@ -689,6 +690,7 @@ public class MPRoomManager : MonoBehaviour
         if (npc != null)
         {
             npc.Init(this, _localPlayer);
+            npc.ApplyAttributes(attrs);
             npc.SetPoolKey(poolKey);
 
             var agent = npc.GetComponent<UnityEngine.AI.NavMeshAgent>();

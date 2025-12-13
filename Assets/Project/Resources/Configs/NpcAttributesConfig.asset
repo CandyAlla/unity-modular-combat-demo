@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f59860f067e541ffa571fb4880b1726, type: 3}
+  m_Name: NpcAttributesConfig
+  m_EditorClassIdentifier: 
+  Entries:
+  - NpcId: 1
+    MaxHp: 30
+    MoveSpeed: 3.5
+    AttackDamage: 10
+    AttackInterval: 1
+    AttackRange: 1.2
+    Prefab: {fileID: 100000, guid: bb72b0a72115649c59c421592472133d, type: 3}
+  - NpcId: 2
+    MaxHp: 60
+    MoveSpeed: 3.5
+    AttackDamage: 12
+    AttackInterval: 0.8
+    AttackRange: 1.2
+    Prefab: {fileID: 100000, guid: bb72b0a72115649c59c421592472133d, type: 3}
+  - NpcId: 3
+    MaxHp: 60
+    MoveSpeed: 3.5
+    AttackDamage: 12
+    AttackInterval: 0.8
+    AttackRange: 1.2
+    Prefab: {fileID: 100000, guid: 09d349f38437e4c83955d6f1c2de07da, type: 3}
