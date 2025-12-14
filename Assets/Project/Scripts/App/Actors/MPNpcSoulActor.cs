@@ -10,6 +10,7 @@ public class MPNpcSoulActor : MPCharacterSoulActorBase
     public int AttackDamage = 10;
     public float AttackInterval = 1.0f;
     public float AttackRange = 1.2f;
+    public float SearchRange = 10.0f; // New field for Idle -> Chasing detection
     #endregion
 
     #region Fields
@@ -18,6 +19,7 @@ public class MPNpcSoulActor : MPCharacterSoulActorBase
     private float _attackTimer;
     private NavMeshAgent _agent;
     private bool _isPaused;
+    private NpcStateManager _stateMgr;
     #endregion
 
     #region Public Methods
@@ -76,34 +78,84 @@ public class MPNpcSoulActor : MPCharacterSoulActorBase
         {
             _agent.speed = _moveSpeed;
         }
+
+        _stateMgr = new NpcStateManager();
+        _stateMgr.ChangeState(NpcStateManager.NpcState.Birth);
+        _stateMgr.ChangeState(NpcStateManager.NpcState.Idle);
     }
 
     protected override void OnUpdateNpcMovement(float deltaTime)
     {
-        if (_isPaused)
-        {
-            return;
-        }
+        if (_isPaused || IsDead || _agent == null) return;
+        if (_stateMgr == null) return;
 
-        if (IsDead)
-        {
-            return;
-        }
-
-        if (_agent == null)
-        {
-            return;
-        }
-
+        // General target validation
         if (_playerTarget == null || _playerTarget.IsDead)
         {
-            return;
+             // If target is lost, maybe go back to Idle? For now just return.
+             return;
         }
 
-        if (_agent != null && _agent.isStopped)
+        float sqrDist = (_playerTarget.transform.position - transform.position).sqrMagnitude;
+        float attackRangeSqr = AttackRange * AttackRange;
+        float searchRangeSqr = SearchRange * SearchRange;
+
+        switch (_stateMgr.CurrentState)
         {
-            _agent.isStopped = false;
+            case NpcStateManager.NpcState.Idle:
+                // Logic: Found player? -> Chase
+                if (sqrDist <= searchRangeSqr)
+                {
+                    _stateMgr.ChangeState(NpcStateManager.NpcState.Chasing);
+                }
+                break;
+
+            case NpcStateManager.NpcState.Chasing:
+                // Logic: In attack range? -> Attack
+                // Logic: Move to player
+                if (sqrDist <= attackRangeSqr)
+                {
+                    _stateMgr.ChangeState(NpcStateManager.NpcState.Attack);
+                    // Stop moving immediately
+                     if (_agent.isOnNavMesh) _agent.isStopped = true;
+                }
+                else
+                {
+                     // Update speed and destination
+                    UpdateMovementLogic(sqrDist);
+                }
+                break;
+
+            case NpcStateManager.NpcState.Attack:
+                // Logic: Player ran away? -> Chase
+                // Logic: Execute attack
+                if (sqrDist > attackRangeSqr)
+                {
+                    _stateMgr.ChangeState(NpcStateManager.NpcState.Chasing);
+                    // Resume moving
+                    if (_agent.isOnNavMesh) _agent.isStopped = false;
+                }
+                else
+                {
+                    // Face target
+                    var dir = _playerTarget.transform.position - transform.position;
+                    dir.y = 0;
+                    if (dir.magnitude > 0.1f)
+                    {
+                        transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(dir), deltaTime * 10f);
+                    }
+                    
+                    HandleAttack(deltaTime, sqrDist);
+                }
+                break;
         }
+    }
+
+    private void UpdateMovementLogic(float sqrDist)
+    {
+        if (_agent == null) return;
+
+        if (_agent.isStopped) _agent.isStopped = false;
 
         float currentSpeed = _moveSpeed;
         if (_attributeComponent != null)
@@ -112,15 +164,10 @@ public class MPNpcSoulActor : MPCharacterSoulActorBase
         }
         else
         {
-             // Fallback if component missing, though base ensures it exists
              currentSpeed = _moveSpeed;
         }
         _agent.speed = currentSpeed;
         _agent.destination = _playerTarget.transform.position;
-
-        var dir = _playerTarget.transform.position - transform.position;
-        dir.y = 0f;
-        HandleAttack(deltaTime, dir.sqrMagnitude);
     }
 
     protected override void OnBeforeDeath()
@@ -132,6 +179,11 @@ public class MPNpcSoulActor : MPCharacterSoulActorBase
 
         // Base class raises EventBus event
         base.OnBeforeDeath();
+
+        if (_stateMgr != null)
+        {
+            _stateMgr.ChangeState(NpcStateManager.NpcState.Dead);
+        }
     }
 
     protected override void OnAfterDeath()
