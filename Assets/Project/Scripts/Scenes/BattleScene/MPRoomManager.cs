@@ -278,6 +278,7 @@ public class MPRoomManager : MonoBehaviour
         Debug.Log($"[MPRoomManager] Pause toggled: {_isPaused}");
 
         SetNpcsPaused(_isPaused);
+        BulletActorLite.SetPausedAll(_isPaused);
     }
 
     public void RegisterEnemyDestroyed()
@@ -386,6 +387,7 @@ public class MPRoomManager : MonoBehaviour
         ClearNpcs();
         _actors.Clear();
         _aliveEnemyCount = 0;
+        BulletActorLite.ClearAll();
 
         ResetPlayerForRestart();
 

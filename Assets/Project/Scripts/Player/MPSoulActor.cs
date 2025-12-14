@@ -9,6 +9,7 @@ public class MPSoulActor : MPCharacterSoulActorBase
     #region Inspector
     [SerializeField] private float _moveSpeed = 5f;
     [SerializeField] private MPRoomManager _roomManager;
+    [SerializeField] private MPSkillActorLite _skillActor;
     #endregion
 
     #region Fields
@@ -62,6 +63,8 @@ public class MPSoulActor : MPCharacterSoulActorBase
             Debug.Log("[MPSoulActor] Debug Input: Adding MoveSpeedUp Buff");
             TryAddBuffStack(BuffType.MoveSpeedUp);
         }
+
+        _skillActor?.Tick(Time.deltaTime);
     }
 
     protected override void OnDestroy()
@@ -78,6 +81,16 @@ public class MPSoulActor : MPCharacterSoulActorBase
         if (_attributeComponent != null)
         {
             _attributeComponent.SetBaseValue(AttributeType.MoveSpeed, _moveSpeed);
+        }
+
+        if (_skillActor == null)
+        {
+            _skillActor = GetComponent<MPSkillActorLite>();
+        }
+
+        if (_skillActor != null)
+        {
+            _skillActor.Initialize(gameObject);
         }
     }
 
@@ -142,6 +155,16 @@ public class MPSoulActor : MPCharacterSoulActorBase
             rb.velocity = Vector3.zero;
             rb.angularVelocity = Vector3.zero;
         }
+
+        if (_skillActor == null)
+        {
+            _skillActor = GetComponent<MPSkillActorLite>();
+        }
+
+        if (_skillActor != null)
+        {
+            _skillActor.Initialize(gameObject);
+        }
     }
 
     private void OnMove(InputAction.CallbackContext context)
@@ -178,6 +201,69 @@ public class MPSoulActor : MPCharacterSoulActorBase
             }
         }
     }
+
+    private void OnCastSkill(InputAction.CallbackContext context)
+    {
+        if (!_canControl || (MPRoomManager.Inst != null && MPRoomManager.Inst.IsPaused))
+        {
+            return;
+        }
+
+        if (context.performed && _skillActor != null)
+        {
+            // Aim toward nearest NPC; fallback to forward.
+            var dir = transform.forward;
+            var targetPos = transform.position + dir * 2f;
+
+            var nearest = FindNearestNpc();
+            if (nearest != null)
+            {
+                var toNpc = nearest.transform.position - transform.position;
+                toNpc.y = 0f;
+                if (toNpc.sqrMagnitude > 0.001f)
+                {
+                    dir = toNpc.normalized;
+                    targetPos = nearest.transform.position;
+                }
+            }
+
+            var casted = _skillActor.OnActiveSkillInput(targetPos, dir);
+            if (casted)
+            {
+                Debug.Log("[MPSoulActor] Casting skill...");
+            }
+            else
+            {
+                Debug.Log("[MPSoulActor] Active skill not ready or missing config.");
+            }
+        }
+    }
+
+    private MPNpcSoulActor FindNearestNpc()
+    {
+        var npcs = FindObjectsOfType<MPNpcSoulActor>();
+        MPNpcSoulActor nearest = null;
+        float best = float.MaxValue;
+        var myPos = transform.position;
+
+        foreach (var npc in npcs)
+        {
+            if (npc == null || npc.IsDead)
+            {
+                continue;
+            }
+
+            var toNpc = npc.transform.position - myPos;
+            var dist = toNpc.sqrMagnitude;
+            if (dist < best)
+            {
+                best = dist;
+                nearest = npc;
+            }
+        }
+
+        return nearest;
+    }
     #endregion
 
     #region Input Wrapper
@@ -201,6 +287,11 @@ public class MPSoulActor : MPCharacterSoulActorBase
             {
                 _owner.OnAttack(context);
             }
+        }
+
+        public void OnCastSkill(InputAction.CallbackContext context)
+        {
+            _owner.OnCastSkill(context);
         }
     }
     #endregion

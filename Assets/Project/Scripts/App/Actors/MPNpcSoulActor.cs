@@ -28,6 +28,12 @@ public class MPNpcSoulActor : MPCharacterSoulActorBase
         _roomManager = room;
         _playerTarget = player;
         ResetState();
+        if (_stateMgr == null)
+        {
+            _stateMgr = new NpcStateManager();
+        }
+        _stateMgr.ChangeState(NpcStateManager.NpcState.Birth);
+        _stateMgr.ChangeState(NpcStateManager.NpcState.Idle);
     }
 
     public void ApplyAttributes(NpcAttributesConfig.NpcAttributesEntry attrs)
@@ -206,6 +212,11 @@ public class MPNpcSoulActor : MPCharacterSoulActorBase
         CurrentHp = MaxHp;
         _attackTimer = 0f;
         _isPaused = false;
+        if (_agent != null)
+        {
+            _agent.enabled = true;
+            _agent.isStopped = false;
+        }
     }
 
     private void HandleAttack(float deltaTime, float sqrDistanceToPlayer)

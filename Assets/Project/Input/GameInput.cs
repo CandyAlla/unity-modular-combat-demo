@@ -40,7 +40,16 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
                     ""name"": ""Attack"",
                     ""type"": ""Button"",
                     ""id"": ""e45f3606-d3f8-44c9-a521-1008a3b53199"",
-                    ""expectedControlType"": ""Button"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""CastSkill"",
+                    ""type"": ""Button"",
+                    ""id"": ""fc27ad85-e145-4a9d-98f9-67149f1a3387"",
+                    ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
@@ -104,8 +113,8 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
                 },
                 {
                     ""name"": """",
-                    ""id"": ""c15b3606-d3f8-44c9-a521-1008a3b53188"",
-                    ""path"": ""<Mouse>/leftButton"",
+                    ""id"": ""d15b3606-d3f8-44c9-a521-1008a3b53177"",
+                    ""path"": ""<Keyboard>/j"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
@@ -115,12 +124,12 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
                 },
                 {
                     ""name"": """",
-                    ""id"": ""d15b3606-d3f8-44c9-a521-1008a3b53177"",
-                    ""path"": ""<Keyboard>/space"",
+                    ""id"": ""8636dac7-d5ab-45f0-969c-e475b8490d5d"",
+                    ""path"": ""<Keyboard>/l"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
-                    ""action"": ""Attack"",
+                    ""action"": ""CastSkill"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -145,6 +154,7 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
         m_Player = asset.FindActionMap("Player", throwIfNotFound: true);
         m_Player_Move = m_Player.FindAction("Move", throwIfNotFound: true);
         m_Player_Attack = m_Player.FindAction("Attack", throwIfNotFound: true);
+        m_Player_CastSkill = m_Player.FindAction("CastSkill", throwIfNotFound: true);
     }
 
     ~@GameInput()
@@ -213,12 +223,14 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
     private List<IPlayerActions> m_PlayerActionsCallbackInterfaces = new List<IPlayerActions>();
     private readonly InputAction m_Player_Move;
     private readonly InputAction m_Player_Attack;
+    private readonly InputAction m_Player_CastSkill;
     public struct PlayerActions
     {
         private @GameInput m_Wrapper;
         public PlayerActions(@GameInput wrapper) { m_Wrapper = wrapper; }
         public InputAction @Move => m_Wrapper.m_Player_Move;
         public InputAction @Attack => m_Wrapper.m_Player_Attack;
+        public InputAction @CastSkill => m_Wrapper.m_Player_CastSkill;
         public InputActionMap Get() { return m_Wrapper.m_Player; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -234,6 +246,9 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
             @Attack.started += instance.OnAttack;
             @Attack.performed += instance.OnAttack;
             @Attack.canceled += instance.OnAttack;
+            @CastSkill.started += instance.OnCastSkill;
+            @CastSkill.performed += instance.OnCastSkill;
+            @CastSkill.canceled += instance.OnCastSkill;
         }
 
         private void UnregisterCallbacks(IPlayerActions instance)
@@ -244,6 +259,9 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
             @Attack.started -= instance.OnAttack;
             @Attack.performed -= instance.OnAttack;
             @Attack.canceled -= instance.OnAttack;
+            @CastSkill.started -= instance.OnCastSkill;
+            @CastSkill.performed -= instance.OnCastSkill;
+            @CastSkill.canceled -= instance.OnCastSkill;
         }
 
         public void RemoveCallbacks(IPlayerActions instance)
@@ -274,5 +292,6 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
     {
         void OnMove(InputAction.CallbackContext context);
         void OnAttack(InputAction.CallbackContext context);
+        void OnCastSkill(InputAction.CallbackContext context);
     }
 }
