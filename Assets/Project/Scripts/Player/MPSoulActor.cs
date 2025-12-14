@@ -221,38 +221,9 @@ public class MPSoulActor : MPCharacterSoulActorBase
 
     private void OnCastSkill(InputAction.CallbackContext context)
     {
-        if (!_canControl || (MPRoomManager.Inst != null && MPRoomManager.Inst.IsPaused))
+        if (context.performed)
         {
-            return;
-        }
-
-        if (context.performed && _skillActor != null)
-        {
-            // Aim toward nearest NPC; fallback to forward.
-            var dir = transform.forward;
-            var targetPos = transform.position + dir * 2f;
-
-            var nearest = FindNearestNpc();
-            if (nearest != null)
-            {
-                var toNpc = nearest.transform.position - transform.position;
-                toNpc.y = 0f;
-                if (toNpc.sqrMagnitude > 0.001f)
-                {
-                    dir = toNpc.normalized;
-                    targetPos = nearest.transform.position;
-                }
-            }
-
-            var casted = _skillActor.OnActiveSkillInput(targetPos, dir);
-            if (casted)
-            {
-                Debug.Log("[MPSoulActor] Casting skill...");
-            }
-            else
-            {
-                Debug.Log("[MPSoulActor] Active skill not ready or missing config.");
-            }
+            TryCastActiveSkillFromUI();
         }
     }
 
@@ -281,6 +252,44 @@ public class MPSoulActor : MPCharacterSoulActorBase
 
         return nearest;
     }
+
+    public bool TryCastActiveSkillFromUI()
+    {
+        if (!_canControl || _skillActor == null || (MPRoomManager.Inst != null && MPRoomManager.Inst.IsPaused))
+        {
+            return false;
+        }
+
+        // Aim toward nearest NPC; fallback to forward.
+        var dir = transform.forward;
+        var targetPos = transform.position + dir * 2f;
+
+        var nearest = FindNearestNpc();
+        if (nearest != null)
+        {
+            var toNpc = nearest.transform.position - transform.position;
+            toNpc.y = 0f;
+            if (toNpc.sqrMagnitude > 0.001f)
+            {
+                dir = toNpc.normalized;
+                targetPos = nearest.transform.position;
+            }
+        }
+
+        var casted = _skillActor.OnActiveSkillInput(targetPos, dir);
+        if (casted)
+        {
+            Debug.Log("[MPSoulActor] Casting skill...");
+        }
+        else
+        {
+            Debug.Log("[MPSoulActor] Active skill not ready or missing config.");
+        }
+
+        return casted;
+    }
+
+    public MPSkillActorLite GetSkillActor() => _skillActor;
     #endregion
 
     #region Input Wrapper

@@ -14,6 +14,15 @@ public class UI_BattlePanel : UIBase
     [SerializeField] private MPRoomManager _roomManager;
     [SerializeField] private TMP_Text _timerText;
     [SerializeField] private TMP_Text _startButtonLabel;
+    [Header("Active Skill")]
+    [SerializeField] private Button _activeSkillButton;
+    [SerializeField] private Image _activeSkillCooldownMask;
+    [SerializeField] private float _cooldownMaskRotateSpeed = 180f;
+    [SerializeField] private MPSoulActor _player;
+    #endregion
+
+    #region Fields
+    private MPSkillActorLite _skillActor;
     #endregion
 
     #region Unity Lifecycle
@@ -32,6 +41,9 @@ public class UI_BattlePanel : UIBase
         if (_startButtonLabel == null && _startBattleButton != null)
             _startButtonLabel = _startBattleButton.GetComponentInChildren<TMP_Text>();
 
+        if (_activeSkillButton != null)
+            _activeSkillButton.onClick.AddListener(OnClickActiveSkill);
+
         UpdateStartButtonLabel();
     }
 
@@ -42,12 +54,16 @@ public class UI_BattlePanel : UIBase
 
         if (_startBattleButton != null)
             _startBattleButton.onClick.RemoveListener(OnClickStartBattle);
+
+        if (_activeSkillButton != null)
+            _activeSkillButton.onClick.RemoveListener(OnClickActiveSkill);
     }
 
     private void Update()
     {
         UpdateTimer();
         UpdateStartButtonLabel();
+        UpdateActiveSkillUI();
     }
     #endregion
 
@@ -115,6 +131,19 @@ public class UI_BattlePanel : UIBase
         GameClientManager.Instance.SetTransition(SceneStateId.Login);
     }
 
+    private void OnClickActiveSkill()
+    {
+        if (_player == null)
+        {
+            TryCacheActors();
+        }
+
+        if (_player != null)
+        {
+            _player.TryCastActiveSkillFromUI();
+        }
+    }
+
     private void UpdateStartButtonLabel()
     {
         if (_startButtonLabel == null)
@@ -142,6 +171,66 @@ public class UI_BattlePanel : UIBase
             case MPRoomManager.RoomState.Finished:
                 _startButtonLabel.text = "Finished";
                 break;
+        }
+    }
+
+    private void UpdateActiveSkillUI()
+    {
+        if (_activeSkillButton == null)
+        {
+            return;
+        }
+
+        TryCacheActors();
+
+        var running = _roomManager != null && _roomManager.State == MPRoomManager.RoomState.Running && !_roomManager.IsPaused;
+        var playerReady = _player != null && !_player.IsDead;
+
+        float remaining = 0f;
+        float total = 0f;
+        bool ready = false;
+        var hasSkill = _skillActor != null && _skillActor.TryGetActiveSkillCooldown(out remaining, out total, out ready);
+
+        var interactable = running && playerReady && hasSkill && ready;
+        _activeSkillButton.interactable = interactable;
+
+        if (_activeSkillCooldownMask != null)
+        {
+            var showMask = hasSkill && !ready && total > 0f;
+            _activeSkillCooldownMask.gameObject.SetActive(showMask);
+            if (showMask)
+            {
+                var fill = total <= 0.0001f ? 0f : Mathf.Clamp01(remaining / Mathf.Max(total, 0.0001f));
+                _activeSkillCooldownMask.fillAmount = fill;
+                // _activeSkillCooldownMask.rectTransform.Rotate(0f, 0f, _cooldownMaskRotateSpeed * Time.deltaTime);
+            }
+        }
+    }
+
+    private void TryCacheActors()
+    {
+        if (_roomManager == null)
+        {
+            _roomManager = FindObjectOfType<MPRoomManager>();
+        }
+
+        if (_player == null && _roomManager != null)
+        {
+            _player = _roomManager.LocalPlayer;
+        }
+
+        if (_player == null)
+        {
+            _player = FindObjectOfType<MPSoulActor>();
+        }
+
+        if (_player != null && _skillActor == null)
+        {
+            _skillActor = _player.GetSkillActor();
+            if (_skillActor == null)
+            {
+                _skillActor = _player.GetComponent<MPSkillActorLite>();
+            }
         }
     }
     #endregion

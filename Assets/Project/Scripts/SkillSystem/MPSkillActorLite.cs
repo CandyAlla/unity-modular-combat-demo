@@ -41,6 +41,23 @@ public class MPSkillActorLite : MonoBehaviour
         UpdateSlot(_activeSkill, deltaTime);
     }
 
+    public bool TryGetActiveSkillCooldown(out float remaining, out float total, out bool isReady)
+    {
+        remaining = 0f;
+        total = 0f;
+        isReady = false;
+
+        if (_activeSkill == null || _activeSkill.Controller == null || _activeSkill.Config == null)
+        {
+            return false;
+        }
+
+        remaining = _activeSkill.Controller.CooldownRemaining;
+        total = _activeSkill.Config.Cooldown;
+        isReady = _activeSkill.Controller.IsReady;
+        return true;
+    }
+
     // Input entry for primary attack
     public void OnPrimaryAttackInput(Vector3 targetPosition, Vector3 direction)
     {
@@ -60,6 +77,11 @@ public class MPSkillActorLite : MonoBehaviour
         }
 
         return false;
+    }
+
+    public bool IsActiveSkillReady()
+    {
+        return _activeSkill != null && _activeSkill.Controller != null && _activeSkill.Controller.IsReady;
     }
     #endregion
 

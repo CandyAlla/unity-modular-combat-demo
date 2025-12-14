@@ -65,6 +65,7 @@ public class MPRoomManager : MonoBehaviour
     public bool IsLevelRunning => _levelStatus == LevelStatus.Running;
     public bool IsLevelOver => _levelStatus == LevelStatus.Over;
     public System.Action<int> OnLevelSecondTick;
+    public MPSoulActor LocalPlayer => _localPlayer;
     #endregion
 
     #region Unity Lifecycle
