@@ -9,6 +9,8 @@ public class BulletActorLite : MonoBehaviour
     [SerializeField] private LayerMask _hitMask = ~0;
 
     private GameObject _owner;
+    private bool _targetPlayers;
+    private bool _targetNpcs;
     private Vector3 _direction = Vector3.forward;
     private float _speed = 10f;
     private float _lifeTime;
@@ -48,6 +50,8 @@ public class BulletActorLite : MonoBehaviour
         transform.position += _direction * (_speed * delta);
         _lifeTime += delta;
 
+        TryHitOverlap();
+
         if (_lifeTime >= _maxLifeTime)
         {
             Recycle();
@@ -68,6 +72,30 @@ public class BulletActorLite : MonoBehaviour
         _lifeTime = 0f;
         _paused = false;
         _recycling = false;
+        _targetPlayers = false;
+        _targetNpcs = false;
+
+        if (_owner != null)
+        {
+            if (_owner.GetComponent<MPSoulActor>() != null)
+            {
+                _targetNpcs = true;
+            }
+            else if (_owner.GetComponent<MPNpcSoulActor>() != null)
+            {
+                _targetPlayers = true;
+            }
+            else
+            {
+                _targetPlayers = true;
+                _targetNpcs = true;
+            }
+        }
+        else
+        {
+            _targetPlayers = true;
+            _targetNpcs = true;
+        }
     }
 
     public void SetPaused(bool paused)
@@ -124,7 +152,7 @@ public class BulletActorLite : MonoBehaviour
         }
 
         var target = targetGo.GetComponent<MPCharacterSoulActorBase>();
-        if (target != null && !target.IsDead)
+        if (target != null && !target.IsDead && IsValidTarget(target))
         {
             target.TakeDamage(Mathf.RoundToInt(_damage));
             Recycle();
@@ -152,6 +180,47 @@ public class BulletActorLite : MonoBehaviour
         else
         {
             Destroy(gameObject);
+        }
+    }
+
+    private bool IsValidTarget(MPCharacterSoulActorBase target)
+    {
+        if (target == null || target.IsDead)
+        {
+            return false;
+        }
+
+        if (_targetPlayers && target is MPSoulActor)
+        {
+            return true;
+        }
+
+        if (_targetNpcs && target is MPNpcSoulActor)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private void TryHitOverlap()
+    {
+        var hits = Physics.OverlapSphere(transform.position, _radius, _hitMask, QueryTriggerInteraction.Collide);
+        for (int i = 0; i < hits.Length; i++)
+        {
+            var go = hits[i].gameObject;
+            if (go == null || go == _owner)
+            {
+                continue;
+            }
+
+            var target = go.GetComponent<MPCharacterSoulActorBase>();
+            if (target != null && IsValidTarget(target))
+            {
+                target.TakeDamage(Mathf.RoundToInt(_damage));
+                Recycle();
+                return;
+            }
         }
     }
     #endregion
