@@ -596,6 +596,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 615275318999823247, guid: becb00e298bc641e580b2e35c56990d4, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1400244457686644164, guid: becb00e298bc641e580b2e35c56990d4, type: 3}
       propertyPath: m_LocalPosition.x
       value: -0.37999272
@@ -639,6 +643,10 @@ PrefabInstance:
     - target: {fileID: 6616821203971370219, guid: becb00e298bc641e580b2e35c56990d4, type: 3}
       propertyPath: m_Name
       value: Player_MPSoul
+      objectReference: {fileID: 0}
+    - target: {fileID: 8724387547224830699, guid: becb00e298bc641e580b2e35c56990d4, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -2258,6 +2266,8 @@ MonoBehaviour:
   _camManager: {fileID: 963194229}
   _playerPrefab: {fileID: 6616821203971370219, guid: becb00e298bc641e580b2e35c56990d4, type: 3}
   _floatTextPrefab: {fileID: 8783768405454366830, guid: d49cff124bf8b4970b74d2dd21ba80ab, type: 3}
+  _playerHudPrefab: {fileID: 359865444449749008, guid: 903224800d08f4010acafbfd16ce608c, type: 3}
+  _hudCanvasRoot: {fileID: 1146101917}
   _localPlayer: {fileID: 229169635}
 --- !u!4 &1450710313
 Transform:

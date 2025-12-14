@@ -33,6 +33,8 @@ public class MPRoomManager : MonoBehaviour
     [Header("Fallback Prefabs")]
     [SerializeField] private GameObject _playerPrefab;
     [SerializeField] private GameObject _floatTextPrefab;
+    [SerializeField] private GameObject _playerHudPrefab;
+    [SerializeField] private Transform _hudCanvasRoot;
     [SerializeField] private MPSoulActor _localPlayer;
     #endregion
 
@@ -46,6 +48,7 @@ public class MPRoomManager : MonoBehaviour
     private bool _isPaused;
     private readonly List<MPCharacterSoulActorBase> _actors = new List<MPCharacterSoulActorBase>();
     private readonly List<MPNpcSoulActor> _npcs = new List<MPNpcSoulActor>();
+    private readonly Dictionary<MPCharacterSoulActorBase, PlayerHUD> _actorHuds = new Dictionary<MPCharacterSoulActorBase, PlayerHUD>();
     private Vector3 _playerSpawnPosition;
     private Quaternion _playerSpawnRotation;
     [Header("Level Timing")]
@@ -169,11 +172,16 @@ public class MPRoomManager : MonoBehaviour
             }
             else
             {
-            Debug.LogWarning($"[MPRoomManager] No prefab found for NPC {npcId}; spawns will be skipped.");
-        }
+                Debug.LogWarning($"[MPRoomManager] No prefab found for NPC {npcId}; spawns will be skipped.");
+            }
         }
         
         PoolManager.InitPoolItem<SoulFloatingText>("UI_FloatText", _floatTextPrefab, 10);
+        if (_playerHudPrefab != null)
+        {
+            PoolManager.InitPoolItem<PlayerHUD>("UI_PlayerHUD", _playerHudPrefab, 10);
+        }
+        
 
         _state = RoomState.NotStarted;
         _aliveEnemyCount = 0;
@@ -184,6 +192,7 @@ public class MPRoomManager : MonoBehaviour
         _currentSecond = 0;
         _lastSecond = -1;
         _actors.Clear();
+        ReleaseAllHuds();
 
         if (_localPlayer == null)
         {
@@ -343,6 +352,7 @@ public class MPRoomManager : MonoBehaviour
         }
 
         _actors.Add(actor);
+        AttachHud(actor);
     }
 
     public void BeginTimeCounting()
@@ -438,6 +448,7 @@ public class MPRoomManager : MonoBehaviour
         }
 
         _actors.Remove(actor);
+        ReleaseHud(actor);
     }
 
     private void ResetPlayerForRestart()
@@ -800,6 +811,7 @@ public class MPRoomManager : MonoBehaviour
         {
             if (npc != null)
             {
+                ReleaseHud(npc);
                 var poolKey = npc.GetPoolKey();
                 PoolManager.DespawnItemToPool(string.IsNullOrEmpty(poolKey) ? _enemyPoolKey : poolKey, npc);
             }
@@ -825,6 +837,92 @@ public class MPRoomManager : MonoBehaviour
         }
 
         return actor;
+    }
+
+    private void AttachHud(MPCharacterSoulActorBase actor)
+    {
+        if (actor == null || _actorHuds.ContainsKey(actor))
+        {
+            return;
+        }
+
+        PlayerHUD hud = null;
+        var spawnPos = actor.transform.position;
+        // HUDs must be under a Canvas, not the 3D root
+        var parent = _hudCanvasRoot;
+
+        if (parent == null)
+        {
+             // Fallback: try to find a canvas if none assigned
+             var cv = FindObjectOfType<Canvas>();
+             if (cv == null)
+             {
+                 var all = Resources.FindObjectsOfTypeAll<Canvas>();
+                 if (all != null && all.Length > 0)
+                 {
+                     cv = all[0];
+                 }
+             }
+             if (cv != null) parent = cv.transform;
+        }
+
+        if (PoolManager.Inst != null)
+        {
+            hud = PoolManager.SpawnItemFromPool<PlayerHUD>("UI_PlayerHUD", spawnPos, Quaternion.identity);
+            if (hud != null && parent != null && hud.transform.parent != parent)
+            {
+                hud.transform.SetParent(parent, false); // false = keep local scale, important for UI
+            }
+        }
+        else if (_playerHudPrefab != null)
+        {
+            hud = Instantiate(_playerHudPrefab, spawnPos, Quaternion.identity, parent).GetComponent<PlayerHUD>();
+        }
+
+        if (hud != null)
+        {
+            var cam = _camManager != null ? _camManager.MainCamera : Camera.main;
+            hud.Bind(actor, actor.HudAnchor, cam);
+            _actorHuds[actor] = hud;
+        }
+        else
+        {
+            Debug.LogWarning("[MPRoomManager] Failed to obtain PlayerHUD instance. Ensure canvas and pool are set.");
+        }
+    }
+
+    private void ReleaseHud(MPCharacterSoulActorBase actor)
+    {
+        if (actor == null)
+        {
+            return;
+        }
+
+        if (_actorHuds.TryGetValue(actor, out var hud))
+        {
+            _actorHuds.Remove(actor);
+            if (hud != null)
+            {
+                if (PoolManager.Inst != null)
+                {
+                    PoolManager.DespawnItemToPool("UI_PlayerHUD", hud);
+                }
+                else
+                {
+                    Destroy(hud.gameObject);
+                }
+            }
+        }
+    }
+
+    private void ReleaseAllHuds()
+    {
+        var snapshot = new List<MPCharacterSoulActorBase>(_actorHuds.Keys);
+        foreach (var actor in snapshot)
+        {
+            ReleaseHud(actor);
+        }
+        _actorHuds.Clear();
     }
 
     private MPCamManager SpawnFallbackCamera()

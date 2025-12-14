@@ -10,6 +10,7 @@ public class MPCharacterSoulActorBase : MonoBehaviour
     #region Inspector
     [SerializeField] protected int MaxHp = 100;
     [SerializeField] protected int CurrentHp = 100;
+    [SerializeField] private Transform _hudAnchor;
     #endregion
 
     #region Properties
@@ -17,6 +18,11 @@ public class MPCharacterSoulActorBase : MonoBehaviour
     public BuffLayerMgr BuffLayerMgr => _buffLayerMgr;
     public MPAttributeComponent AttributeComponent => _attributeComponent;
     public event System.Action<DamageContext> OnDamaged;
+    public event System.Action<int, int> OnHpChanged;
+    public int CurrentHpValue => CurrentHp;
+    public int MaxHpValue => MaxHp;
+    public Transform HudAnchor => _hudAnchor != null ? _hudAnchor : transform;
+    public float HealthBarHeight => _healthBarHeight;
     #endregion
 
     #region Fields
@@ -24,6 +30,8 @@ public class MPCharacterSoulActorBase : MonoBehaviour
     private bool _initialized;
     protected BuffLayerMgr _buffLayerMgr;
     protected MPAttributeComponent _attributeComponent;
+    [Header("UI Settings")]
+    [SerializeField] private float _healthBarHeight = 2.0f;
     [Header("Hurt Feedback")]
     [SerializeField] private Renderer _hurtRenderer;
     [SerializeField] private Color _hurtFlashColor = Color.white;
@@ -82,6 +90,7 @@ public class MPCharacterSoulActorBase : MonoBehaviour
 
         var dmg = Mathf.Max(0, amount);
         CurrentHp = Mathf.Clamp(CurrentHp - dmg, 0, MaxHp);
+        OnHpChanged?.Invoke(CurrentHp, MaxHp);
         Debug.Log($"[{name}] Took {dmg} damage. Current HP: {CurrentHp}");
         ShowFloatTextPublic(dmg, FloatTextType.Damage);
         OnAfterTakeDamage(dmg);
@@ -180,6 +189,7 @@ public class MPCharacterSoulActorBase : MonoBehaviour
         MaxHp = Mathf.Max(1, MaxHp);
         CurrentHp = MaxHp;
         IsDead = false;
+        OnHpChanged?.Invoke(CurrentHp, MaxHp);
     }
 
     public virtual void ResetActorState()
