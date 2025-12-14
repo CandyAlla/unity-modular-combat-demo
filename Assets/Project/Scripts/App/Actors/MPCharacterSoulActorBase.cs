@@ -1,4 +1,6 @@
 using UnityEngine;
+using UnityEngine.AI;
+using System.Collections;
 using System.Collections.Generic;
 
 // MPCharacterSoulActorBase provides shared HP and update hooks for player/NPC actors.
@@ -14,6 +16,7 @@ public class MPCharacterSoulActorBase : MonoBehaviour
     public bool IsDead { get; protected set; }
     public BuffLayerMgr BuffLayerMgr => _buffLayerMgr;
     public MPAttributeComponent AttributeComponent => _attributeComponent;
+    public event System.Action<DamageContext> OnDamaged;
     #endregion
 
     #region Fields
@@ -21,17 +24,47 @@ public class MPCharacterSoulActorBase : MonoBehaviour
     private bool _initialized;
     protected BuffLayerMgr _buffLayerMgr;
     protected MPAttributeComponent _attributeComponent;
+    [Header("Hurt Feedback")]
+    [SerializeField] private Renderer _hurtRenderer;
+    [SerializeField] private Color _hurtFlashColor = Color.white;
+    [SerializeField] private float _hurtFlashDuration = 0.2f;
+    [SerializeField] private float _hurtStunDuration = 0.3f;
+    private Color _hurtOriginalColor = Color.white;
+    private Coroutine _hurtFlashCo;
+    private NavMeshAgent _hurtAgent;
+    private bool _hurtPaused;
     #endregion
 
     #region Unity Lifecycle
     protected virtual void Awake()
     {
         InitActorIfNeeded();
+
+        if (_hurtRenderer == null)
+        {
+            _hurtRenderer = GetComponentInChildren<Renderer>();
+        }
+
+        _hurtAgent = GetComponent<NavMeshAgent>();
+
+        if (_hurtRenderer != null && _hurtRenderer.sharedMaterial != null)
+        {
+            var mat = _hurtRenderer.sharedMaterial;
+            if (mat.HasProperty("_BaseColor"))
+                _hurtOriginalColor = mat.GetColor("_BaseColor");
+            else if (mat.HasProperty("_Color"))
+                _hurtOriginalColor = mat.GetColor("_Color");
+        }
     }
 
     protected virtual void OnEnable()
     {
         ResetHealth();
+    }
+
+    protected virtual void OnDisable()
+    {
+        ResetHurtFeedback();
     }
 
     protected virtual void OnDestroy() { }
@@ -50,8 +83,20 @@ public class MPCharacterSoulActorBase : MonoBehaviour
         var dmg = Mathf.Max(0, amount);
         CurrentHp = Mathf.Clamp(CurrentHp - dmg, 0, MaxHp);
         Debug.Log($"[{name}] Took {dmg} damage. Current HP: {CurrentHp}");
-        ShowFloatText(dmg, FloatTextType.Damage);
+        ShowFloatTextPublic(dmg, FloatTextType.Damage);
         OnAfterTakeDamage(dmg);
+
+        var dmgCtx = new DamageContext
+        {
+            DamageAmount = dmg,
+            IsCrit = false,
+            Attacker = null,
+            Victim = this,
+            HitPoint = transform.position
+        };
+
+        OnDamaged?.Invoke(dmgCtx);
+        PlayHurtFeedback();
 
         if (CurrentHp <= 0)
         {
@@ -125,7 +170,7 @@ public class MPCharacterSoulActorBase : MonoBehaviour
             _buffLayerMgr = new BuffLayerMgr(lookup, _attributeComponent);
             _buffLayerMgr.OnBuffAdded += (cfg) =>
             {
-                ShowFloatText(0, FloatTextType.Buff, cfg.BuffName);
+                ShowFloatTextPublic(0, FloatTextType.Buff, cfg.BuffName);
             };
         }
     }
@@ -141,6 +186,7 @@ public class MPCharacterSoulActorBase : MonoBehaviour
     {
         ResetHealth();
         _buffLayerMgr?.ClearAll();
+        ResetHurtFeedback();
     }
 
     public void TryAddBuffStack(BuffType type)
@@ -157,7 +203,7 @@ public class MPCharacterSoulActorBase : MonoBehaviour
     {
         _buffLayerMgr?.Tick(deltaTime);
     }
-    protected void ShowFloatText(int value, FloatTextType type, string customText = null)
+    public void ShowFloatTextPublic(int value, FloatTextType type, string customText = null)
     {
         if (PoolManager.Inst == null) return;
 
@@ -180,6 +226,108 @@ public class MPCharacterSoulActorBase : MonoBehaviour
                 Color = defaults.Color
             };
             textObj.Init(info);
+        }
+    }
+
+    public void SetHurtPaused(bool paused)
+    {
+        _hurtPaused = paused;
+        if (paused)
+        {
+            ResetHurtFeedback();
+        }
+    }
+
+    protected void ResetHurtFeedback()
+    {
+        if (_hurtFlashCo != null)
+        {
+            StopCoroutine(_hurtFlashCo);
+            _hurtFlashCo = null;
+        }
+
+        if (_hurtRenderer != null && _hurtRenderer.material != null)
+        {
+            var mat = _hurtRenderer.material;
+            if (mat.HasProperty("_BaseColor"))
+                mat.SetColor("_BaseColor", _hurtOriginalColor);
+            else if (mat.HasProperty("_Color"))
+                mat.SetColor("_Color", _hurtOriginalColor);
+        }
+    }
+
+    private void PlayHurtFeedback()
+    {
+        if (_hurtPaused || (MPRoomManager.Inst != null && MPRoomManager.Inst.IsPaused))
+        {
+            return;
+        }
+
+        PlayHurtFlash();
+        PlayHurtStun();
+    }
+
+    private void PlayHurtFlash()
+    {
+        if (_hurtRenderer == null)
+        {
+            return;
+        }
+
+        if (_hurtFlashCo != null)
+        {
+            StopCoroutine(_hurtFlashCo);
+        }
+
+        _hurtFlashCo = StartCoroutine(HurtFlashRoutine());
+    }
+
+    private IEnumerator HurtFlashRoutine()
+    {
+        var mat = _hurtRenderer.material;
+        if (mat != null)
+        {
+            if (mat.HasProperty("_BaseColor"))
+                mat.SetColor("_BaseColor", _hurtFlashColor);
+            else if (mat.HasProperty("_Color"))
+                mat.SetColor("_Color", _hurtFlashColor);
+        }
+
+        yield return new WaitForSeconds(_hurtFlashDuration);
+
+        if (mat != null)
+        {
+            if (mat.HasProperty("_BaseColor"))
+                mat.SetColor("_BaseColor", _hurtOriginalColor);
+            else if (mat.HasProperty("_Color"))
+                mat.SetColor("_Color", _hurtOriginalColor);
+        }
+
+        _hurtFlashCo = null;
+    }
+
+    private void PlayHurtStun()
+    {
+        if (_isPlayer && this is MPSoulActor player)
+        {
+            player.SetCanControl(false, _hurtStunDuration);
+            return;
+        }
+
+        if (!_isPlayer && _hurtAgent != null)
+        {
+            StartCoroutine(HurtStunRoutine());
+        }
+    }
+
+    private IEnumerator HurtStunRoutine()
+    {
+        var prevStopped = _hurtAgent.isStopped;
+        _hurtAgent.isStopped = true;
+        yield return new WaitForSeconds(_hurtStunDuration);
+        if (!_hurtPaused)
+        {
+            _hurtAgent.isStopped = prevStopped;
         }
     }
     #endregion

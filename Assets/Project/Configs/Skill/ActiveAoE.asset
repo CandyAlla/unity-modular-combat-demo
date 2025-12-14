@@ -21,5 +21,8 @@ MonoBehaviour:
   DamageMultiplier: 1.5
   AnimState: Cast_AoE
   HitEffectPrefab: {fileID: 0}
-  ProjectilePrefab: {fileID: 0}
+  ProjectilePrefab: {fileID: 6482099059345056354, guid: 5a93de9123f2f452780ee560903c63c4, type: 3}
+  ProjectileSpeed: 10
+  ProjectileLifeTime: 3
+  ProjectileDamage: 10
   Category: 1

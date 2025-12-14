@@ -279,6 +279,11 @@ public class MPRoomManager : MonoBehaviour
 
         SetNpcsPaused(_isPaused);
         BulletActorLite.SetPausedAll(_isPaused);
+
+        foreach (var actor in _actors)
+        {
+            actor?.SetHurtPaused(_isPaused);
+        }
     }
 
     public void RegisterEnemyDestroyed()

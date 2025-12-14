@@ -167,6 +167,23 @@ public class MPSoulActor : MPCharacterSoulActorBase
         }
     }
 
+    public void SetCanControl(bool canControl, float recoverAfterSeconds = 0f)
+    {
+        _canControl = canControl;
+        if (canControl || recoverAfterSeconds <= 0f)
+        {
+            return;
+        }
+
+        StartCoroutine(RestoreControl(recoverAfterSeconds));
+    }
+
+    private System.Collections.IEnumerator RestoreControl(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        _canControl = true;
+    }
+
     private void OnMove(InputAction.CallbackContext context)
     {
         _moveInput = context.ReadValue<Vector2>();
