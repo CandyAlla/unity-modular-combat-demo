@@ -10,6 +10,7 @@ public class BuffConfig : ScriptableObject
     public class BuffEntry
     {
         public BuffType Type;
+        public string BuffName;
         public float Duration = 5f;
         public int MaxStacks = 5;
         public bool RefreshDurationOnAdd = true;

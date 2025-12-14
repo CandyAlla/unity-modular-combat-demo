@@ -123,6 +123,10 @@ public class MPCharacterSoulActorBase : MonoBehaviour
         {
             var lookup = DataCtrl.Instance.GetBuffConfigLookup();
             _buffLayerMgr = new BuffLayerMgr(lookup, _attributeComponent);
+            _buffLayerMgr.OnBuffAdded += (cfg) =>
+            {
+                ShowFloatText(0, FloatTextType.Buff, cfg.BuffName);
+            };
         }
     }
 
@@ -153,7 +157,7 @@ public class MPCharacterSoulActorBase : MonoBehaviour
     {
         _buffLayerMgr?.Tick(deltaTime);
     }
-    protected void ShowFloatText(int value, FloatTextType type)
+    protected void ShowFloatText(int value, FloatTextType type, string customText = null)
     {
         if (PoolManager.Inst == null) return;
 
@@ -164,15 +168,16 @@ public class MPCharacterSoulActorBase : MonoBehaviour
         var textObj = PoolManager.SpawnItemFromPool<SoulFloatingText>("UI_FloatText", pos, Quaternion.identity);
         if (textObj != null)
         {
-            // var defaults = FloatTextConfigProvider.GetDefaults(type); // Class missing, reverting to simple defaults
+            var defaults = FloatTextConfigProvider.GetDefaults(type);
             var info = new FloatTextInfo
             {
                 Type = type,
                 Value = value,
+                CustomText = customText,
                 Position = pos,
-                Duration = 1.0f,
-                MoveSpeed = 2.0f,
-                Color = Color.white // Default
+                Duration = defaults.Duration,
+                MoveSpeed = defaults.MoveSpeed,
+                Color = defaults.Color
             };
             textObj.Init(info);
         }

@@ -19,4 +19,4 @@ MonoBehaviour:
     AttackDamage: 10
     AttackCooldown: 0.5
     AttackRange: 10
-    Prefab: {fileID: 100000, guid: becb00e298bc641e580b2e35c56990d4, type: 3}
+    Prefab: {fileID: 6616821203971370219, guid: becb00e298bc641e580b2e35c56990d4, type: 3}

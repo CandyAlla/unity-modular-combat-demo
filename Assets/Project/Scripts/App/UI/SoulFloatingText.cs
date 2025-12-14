@@ -51,6 +51,7 @@ public class SoulFloatingText : MonoBehaviour
     {
         string text = info.Value.ToString();
         if (info.Type == FloatTextType.Miss) text = "MISS";
+        if (info.Type == FloatTextType.Buff) text = !string.IsNullOrEmpty(info.CustomText) ? info.CustomText : "BUFF";
 
         if (_tmpText != null) _tmpText.text = text;
         if (_tmpTextUI != null) _tmpTextUI.text = text;

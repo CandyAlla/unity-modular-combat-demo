@@ -6,6 +6,7 @@ public class FloatTextInfo
 {
     public FloatTextType Type;
     public int Value;
+    public string CustomText; // For non-numeric text like "SpeedUp"
     public Vector3 Position;
     public Color Color = Color.white;
     public float Duration = 1.0f;
@@ -20,5 +21,6 @@ public enum FloatTextType
     Damage,
     Critical,
     Miss,
-    Heal
+    Heal,
+    Buff
 }

@@ -13,6 +13,8 @@ public class BuffLayerMgr
         _attributeComponent = attributeComponent;
     }
 
+    public System.Action<BuffConfig.BuffEntry> OnBuffAdded;
+
     public void TryAddStack(BuffType type)
     {
         if (_configLookup == null || !_configLookup.TryGetValue(type, out var cfg) || cfg == null)
@@ -28,6 +30,7 @@ public class BuffLayerMgr
 
         instance.AddStack();
         RecalculateAttributes();
+        OnBuffAdded?.Invoke(cfg);
     }
 
     public void Tick(float deltaTime)

@@ -22,6 +22,7 @@ public class BuffSystemVerification : MonoBehaviour
         var speedBuffEntry = new BuffConfig.BuffEntry
         {
             Type = BuffType.MoveSpeedUp,
+            BuffName = "SpeedUp!",
             Duration = 5.0f,
             MaxStacks = 5,
             MoveSpeedMultiplierPerStack = 0.5f, 

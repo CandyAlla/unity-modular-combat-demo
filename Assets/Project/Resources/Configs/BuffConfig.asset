@@ -12,4 +12,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ea544fcb94ccb40d7b932a67fd6c6878, type: 3}
   m_Name: BuffConfig
   m_EditorClassIdentifier: 
-  Entries: []
+  Entries:
+  - Type: 1
+    BuffName: SpeedUp
+    Duration: 5
+    MaxStacks: 5
+    RefreshDurationOnAdd: 1
+    MoveSpeedMultiplierPerStack: 0.2
+    AttackBonusPerStack: 0
+  - Type: 2
+    BuffName: AttackUp
+    Duration: 5
+    MaxStacks: 5
+    RefreshDurationOnAdd: 1
+    MoveSpeedMultiplierPerStack: 0
+    AttackBonusPerStack: 10
+  - Type: 3
+    BuffName: Slow
+    Duration: 3
+    MaxStacks: 1
+    RefreshDurationOnAdd: 1
+    MoveSpeedMultiplierPerStack: -0.3
+    AttackBonusPerStack: 0

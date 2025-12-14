@@ -29,3 +29,7 @@ MonoBehaviour:
     Color: {r: 0.29411766, g: 0.8627451, b: 0.3254902, a: 1}
     Duration: 1
     MoveSpeed: 2
+  - Type: 4
+    Color: {r: 0.29411763, g: 0.7348445, b: 0.8627451, a: 1}
+    Duration: 1
+    MoveSpeed: 2

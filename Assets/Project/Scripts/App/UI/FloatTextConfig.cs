@@ -64,6 +64,7 @@ public static class FloatTextConfigProvider
             case FloatTextType.Critical: return Color.yellow;
             case FloatTextType.Heal: return Color.green;
             case FloatTextType.Miss: return Color.gray;
+            case FloatTextType.Buff: return Color.cyan;
             default: return Color.white;
         }
     }
