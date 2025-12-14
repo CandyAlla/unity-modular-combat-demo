@@ -320,15 +320,21 @@ public class MPCharacterSoulActorBase : MonoBehaviour
         }
     }
 
+    protected bool IsHurtStunned { get; private set; }
+
     private IEnumerator HurtStunRoutine()
     {
+        IsHurtStunned = true;
         var prevStopped = _hurtAgent.isStopped;
         _hurtAgent.isStopped = true;
+        
         yield return new WaitForSeconds(_hurtStunDuration);
+        
         if (!_hurtPaused)
         {
             _hurtAgent.isStopped = prevStopped;
         }
+        IsHurtStunned = false;
     }
     #endregion
 }

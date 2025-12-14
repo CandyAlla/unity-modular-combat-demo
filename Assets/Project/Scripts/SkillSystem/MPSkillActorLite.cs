@@ -46,7 +46,7 @@ public class MPSkillActorLite : MonoBehaviour
     {
         if (TryCast(_primarySkill, targetPosition, direction))
         {
-            NotifyStateCasting(_primarySkill);
+            NotifyStateCasting();
         }
     }
 
@@ -55,7 +55,7 @@ public class MPSkillActorLite : MonoBehaviour
     {
         if (TryCast(_activeSkill, targetPosition, direction))
         {
-            NotifyStateCasting(_activeSkill);
+            NotifyStateCasting();
             return true;
         }
 
@@ -93,19 +93,10 @@ public class MPSkillActorLite : MonoBehaviour
         return slot.Controller.TryStartCast(targetPos, dir);
     }
 
-    private void NotifyStateCasting(SkillSlot slot)
+    // TODO: integrate with a simple FSM; for now it is a stub for callers to hook up.
+    private void NotifyStateCasting()
     {
-        if (slot == null || slot.Config == null || _owner == null) return;
-
-        //TODO Play Skill Animation with Animator
-        // Try to find an Animator on the owner or its children
-        // var animator = _owner.GetComponentInChildren<Animator>();
-        // if (animator != null && !string.IsNullOrEmpty(slot.Config.AnimState))
-        // {
-        //     // Reset common triggers or play state directly
-        //     // For now, straightforward Play or CrossFade
-        //     animator.Play(slot.Config.AnimState, 0, 0f); // Layer 0, restart
-        // }
+        // This method can signal an FSM or animator about casting state.
     }
 
     private void UpdateSlot(SkillSlot slot, float deltaTime)

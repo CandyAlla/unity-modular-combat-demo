@@ -94,6 +94,9 @@ public class MPNpcSoulActor : MPCharacterSoulActorBase
     {
         if (_isPaused || IsDead || _agent == null) return;
         if (_stateMgr == null) return;
+        
+        // Priority: If stunned by hit, stop logic
+        if (IsHurtStunned) return;
 
         // General target validation
         if (_playerTarget == null || _playerTarget.IsDead)
