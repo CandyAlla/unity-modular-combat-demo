@@ -19,6 +19,7 @@ public class BulletActorLite : MonoBehaviour
     private string _poolKey;
     private bool _paused;
     private bool _recycling;
+    private Vector3 _previousPosition;
 
     private static readonly List<BulletActorLite> _activeBullets = new List<BulletActorLite>();
     #endregion
@@ -47,7 +48,13 @@ public class BulletActorLite : MonoBehaviour
         }
 
         var delta = Time.deltaTime;
-        transform.position += _direction * (_speed * delta);
+        var displacement = _direction * (_speed * delta);
+        var start = transform.position;
+        var end = start + displacement;
+
+        TryHitRay(start, displacement);
+
+        transform.position = end;
         _lifeTime += delta;
 
         TryHitOverlap();
@@ -74,6 +81,7 @@ public class BulletActorLite : MonoBehaviour
         _recycling = false;
         _targetPlayers = false;
         _targetNpcs = false;
+        _previousPosition = transform.position;
 
         if (_owner != null)
         {
@@ -205,7 +213,8 @@ public class BulletActorLite : MonoBehaviour
 
     private void TryHitOverlap()
     {
-        var hits = Physics.OverlapSphere(transform.position, _radius, _hitMask, QueryTriggerInteraction.Collide);
+        var mask = _hitMask.value == 0 ? Physics.DefaultRaycastLayers : _hitMask.value;
+        var hits = Physics.OverlapSphere(transform.position, _radius, mask, QueryTriggerInteraction.Collide);
         for (int i = 0; i < hits.Length; i++)
         {
             var go = hits[i].gameObject;
@@ -221,6 +230,21 @@ public class BulletActorLite : MonoBehaviour
                 Recycle();
                 return;
             }
+        }
+    }
+
+    private void TryHitRay(Vector3 start, Vector3 displacement)
+    {
+        var distance = displacement.magnitude;
+        if (distance <= 0.0001f)
+        {
+            return;
+        }
+
+        var mask = _hitMask.value == 0 ? Physics.DefaultRaycastLayers : _hitMask.value;
+        if (Physics.SphereCast(start, _radius, displacement.normalized, out var hit, distance, mask, QueryTriggerInteraction.Collide))
+        {
+            HandleHit(hit.collider.gameObject);
         }
     }
     #endregion
