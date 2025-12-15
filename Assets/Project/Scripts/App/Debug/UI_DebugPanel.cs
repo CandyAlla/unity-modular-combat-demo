@@ -62,10 +62,6 @@ public class UI_DebugPanel : UIBase
         if (_btnApplyBuffNpcs != null) _btnApplyBuffNpcs.onClick.RemoveListener(ApplySelectedBuffNpcs);
         if (_btnSpawnEnemy != null) _btnSpawnEnemy.onClick.RemoveAllListeners();
         if (_btnSpawnEnemyStatic != null) _btnSpawnEnemyStatic.onClick.RemoveAllListeners();
-        if (_btnBuffHeroSpeed != null) _btnBuffHeroSpeed.onClick.RemoveAllListeners();
-        if (_btnBuffHeroAtk != null) _btnBuffHeroAtk.onClick.RemoveAllListeners();
-        if (_btnBuffNpcSlow != null) _btnBuffNpcSlow.onClick.RemoveAllListeners();
-        if (_btnBuffNpcStun != null) _btnBuffNpcStun.onClick.RemoveAllListeners();
         if (_btnResetHero != null) _btnResetHero.onClick.RemoveAllListeners();
 
         if (_buffDropdown != null)
