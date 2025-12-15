@@ -220,6 +220,7 @@ public class MPSoulActor : MPCharacterSoulActorBase
             if (target != null && target != this && !target.IsDead)
             {
                 target.TakeDamage(attackValue);
+                MPRoomManager.Inst?.RegisterPlayerDamageDealt(attackValue);
                 Debug.Log($"[MPSoulActor] Hit target: {target.name} for {attackValue}");
             }
         }

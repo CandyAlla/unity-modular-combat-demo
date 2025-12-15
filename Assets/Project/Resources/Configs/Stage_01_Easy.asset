@@ -15,28 +15,68 @@ MonoBehaviour:
   StageId: 1
   Duration: 60
   Waves:
-  - Time: 2
+  - Time: 3
     NpcId: 101
-    NpcCount: 2
-    SpawnPointIndex: 0
-    SpawnPosition: {x: 0, y: 0, z: 0}
-  - Time: 4
-    NpcId: 101
-    NpcCount: 2
+    NpcCount: 5
     SpawnPointIndex: 0
     SpawnPosition: {x: 0, y: 0, z: 0}
   - Time: 6
     NpcId: 101
-    NpcCount: 2
-    SpawnPointIndex: 1
-    SpawnPosition: {x: 0, y: 0, z: 0}
-  - Time: 8
-    NpcId: 101
-    NpcCount: 2
-    SpawnPointIndex: 1
+    NpcCount: 8
+    SpawnPointIndex: 0
     SpawnPosition: {x: 0, y: 0, z: 0}
   - Time: 10
     NpcId: 101
-    NpcCount: 2
+    NpcCount: 10
+    SpawnPointIndex: 1
+    SpawnPosition: {x: 0, y: 0, z: 0}
+  - Time: 12
+    NpcId: 101
+    NpcCount: 12
     SpawnPointIndex: 2
+    SpawnPosition: {x: 0, y: 0, z: 0}
+  - Time: 15
+    NpcId: 101
+    NpcCount: 14
+    SpawnPointIndex: 0
+    SpawnPosition: {x: 0, y: 0, z: 0}
+  - Time: 20
+    NpcId: 102
+    NpcCount: 4
+    SpawnPointIndex: 1
+    SpawnPosition: {x: 0, y: 0, z: 0}
+  - Time: 25
+    NpcId: 101
+    NpcCount: 16
+    SpawnPointIndex: 2
+    SpawnPosition: {x: 0, y: 0, z: 0}
+  - Time: 28
+    NpcId: 101
+    NpcCount: 18
+    SpawnPointIndex: 0
+    SpawnPosition: {x: 0, y: 0, z: 0}
+  - Time: 32
+    NpcId: 102
+    NpcCount: 8
+    SpawnPointIndex: 2
+    SpawnPosition: {x: 0, y: 0, z: 0}
+  - Time: 40
+    NpcId: 101
+    NpcCount: 20
+    SpawnPointIndex: 1
+    SpawnPosition: {x: 0, y: 0, z: 0}
+  - Time: 45
+    NpcId: 101
+    NpcCount: 20
+    SpawnPointIndex: 1
+    SpawnPosition: {x: 0, y: 0, z: 0}
+  - Time: 50
+    NpcId: 101
+    NpcCount: 20
+    SpawnPointIndex: 1
+    SpawnPosition: {x: 0, y: 0, z: 0}
+  - Time: 52
+    NpcId: 101
+    NpcCount: 20
+    SpawnPointIndex: 1
     SpawnPosition: {x: 0, y: 0, z: 0}

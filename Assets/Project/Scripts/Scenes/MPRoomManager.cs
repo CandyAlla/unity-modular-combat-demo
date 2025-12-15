@@ -21,6 +21,26 @@ public class MPRoomManager : MonoBehaviour
         Paused,
         Over
     }
+
+    [Serializable]
+    public class BattleStats
+    {
+        public int TotalEnemySpawns;
+        public int TotalEnemyKills;
+        public int PlayerDamageDealt;
+        public int PlayerDamageTaken;
+
+        public BattleStats Clone()
+        {
+            return new BattleStats
+            {
+                TotalEnemySpawns = TotalEnemySpawns,
+                TotalEnemyKills = TotalEnemyKills,
+                PlayerDamageDealt = PlayerDamageDealt,
+                PlayerDamageTaken = PlayerDamageTaken,
+            };
+        }
+    }
     #endregion
 
     #region Inspector
@@ -60,6 +80,7 @@ public class MPRoomManager : MonoBehaviour
     private int _currentSecond;
     private int _lastSecond = -1;
     
+    private BattleStats _battleStats = new BattleStats();
     #endregion
 
     #region Properties
@@ -244,6 +265,7 @@ public class MPRoomManager : MonoBehaviour
         _lastSecond = -1;
         _actors.Clear();
         ReleaseAllHuds();
+        ResetBattleStats();
 
         if (_localPlayer == null)
         {
@@ -360,10 +382,12 @@ public class MPRoomManager : MonoBehaviour
     public void OnEnemySpawned(MPNpcSoulActor enemy)
     {
         _aliveEnemyCount++;
+        RegisterEnemySpawn();
     }
 
     public void OnEnemyDead(MPNpcSoulActor actor)
     {
+        RegisterEnemyKill();
         RegisterEnemyDestroyed();
         UnregisterNpc(actor);
         UnregisterActor(actor);
@@ -446,7 +470,8 @@ public class MPRoomManager : MonoBehaviour
     {
         Debug.Log($"[MPRoomManager] Level over. Win={isWin}");
 
-        UIManager.Inst?.OpenBattleSettlement(isWin, _currentTime);
+        var result = BuildBattleResult(isWin);
+        UIManager.Inst?.OpenBattleSettlement(result);
     }
 
     public void RestartLevel()
@@ -462,6 +487,7 @@ public class MPRoomManager : MonoBehaviour
         _actors.Clear();
         _aliveEnemyCount = 0;
         BulletActorLite.ClearAll();
+        ResetBattleStats();
 
         ResetPlayerForRestart();
 
@@ -1020,5 +1046,59 @@ public class MPRoomManager : MonoBehaviour
 
         return mgr;
     }
+
+    #region Battle Stats
+    private void ResetBattleStats()
+    {
+        _battleStats = new BattleStats();
+    }
+
+    private BattleResultData BuildBattleResult(bool isWin)
+    {
+        return new BattleResultData
+        {
+            IsWin = isWin,
+            DurationSeconds = _currentTime,
+            Stats = _battleStats.Clone()
+        };
+    }
+
+    private void RegisterEnemySpawn()
+    {
+        if (_battleStats != null)
+        {
+            _battleStats.TotalEnemySpawns++;
+        }
+    }
+
+    private void RegisterEnemyKill()
+    {
+        if (_battleStats != null)
+        {
+            _battleStats.TotalEnemyKills++;
+        }
+    }
+
+    public void RegisterPlayerDamageDealt(int amount)
+    {
+        if (_battleStats != null)
+        {
+            _battleStats.PlayerDamageDealt += Mathf.Max(0, amount);
+        }
+    }
+
+    public void RegisterPlayerDamageTaken(int amount)
+    {
+        if (_battleStats != null)
+        {
+            _battleStats.PlayerDamageTaken += Mathf.Max(0, amount);
+        }
+    }
+
+    public BattleStats GetBattleStatsSnapshot()
+    {
+        return _battleStats != null ? _battleStats.Clone() : new BattleStats();
+    }
+    #endregion
     #endregion
 }

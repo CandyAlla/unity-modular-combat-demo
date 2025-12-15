@@ -73,8 +73,14 @@ public class UIManager : MonoBehaviour
         return false;
     }
 
-    public void OpenBattleSettlement(bool isWin, float durationSeconds)
+    public void OpenBattleSettlement(BattleResultData result)
     {
+        if (result == null)
+        {
+            Debug.LogWarning("[UIManager] OpenBattleSettlement called with null result.");
+            return;
+        }
+
         if (_battleSettlementUI == null && !TryGetUI("BattleSettlement", out _battleSettlementUI))
         {
             _battleSettlementUI = FindObjectOfType<UI_BattleSettlement>(true);
@@ -90,8 +96,7 @@ public class UIManager : MonoBehaviour
             return;
         }
 
-        _battleSettlementUI.SetTime(durationSeconds);
-        _battleSettlementUI.Show(isWin);
+        _battleSettlementUI.Show(result);
         _battleSettlementUI.Open();
     }
     #endregion

@@ -162,6 +162,15 @@ public class BulletActorLite : MonoBehaviour
         var target = targetGo.GetComponent<MPCharacterSoulActorBase>();
         if (target != null && !target.IsDead && IsValidTarget(target))
         {
+            if (target is MPNpcSoulActor && _owner != null && _owner.GetComponent<MPSoulActor>() != null)
+            {
+                MPRoomManager.Inst?.RegisterPlayerDamageDealt(Mathf.RoundToInt(_damage));
+            }
+            else if (target is MPSoulActor && _owner != null && _owner.GetComponent<MPNpcSoulActor>() != null)
+            {
+                MPRoomManager.Inst?.RegisterPlayerDamageTaken(Mathf.RoundToInt(_damage));
+            }
+
             target.TakeDamage(Mathf.RoundToInt(_damage));
             Recycle();
             return;

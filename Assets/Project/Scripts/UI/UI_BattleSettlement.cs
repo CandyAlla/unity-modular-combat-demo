@@ -8,6 +8,10 @@ public class UI_BattleSettlement : UIBase
     #region Inspector
     [SerializeField] private TMP_Text _timeText;
     [SerializeField] private TMP_Text _resultText;
+    [SerializeField] private TMP_Text _killText;
+    [SerializeField] private TMP_Text _spawnText;
+    [SerializeField] private TMP_Text _damageDealtText;
+    [SerializeField] private TMP_Text _damageTakenText;
     [SerializeField] private Button _retryButton;
     [SerializeField] private Button _backButton;
     [SerializeField] private MPRoomManager _roomManager;
@@ -37,24 +41,34 @@ public class UI_BattleSettlement : UIBase
     #endregion
 
     #region Public Methods
-    public void Show(bool isWin)
+    public void Show(BattleResultData result)
     {
-        if (_resultText != null)
+        if (result == null)
         {
-            _resultText.text = isWin ? "Victory" : "Defeat";
-        }
-
-        Open();
-    }
-
-    public void SetTime(float seconds)
-    {
-        if (_timeText == null)
-        {
+            Debug.LogWarning("[UI_BattleSettlement] Show called with null result.");
             return;
         }
 
-        _timeText.text = GlobalHelper.FormatTime(seconds);
+        if (_resultText != null)
+        {
+            _resultText.text = result.IsWin ? "Victory" : "Defeat";
+        }
+
+        if (_timeText != null)
+        {
+            _timeText.text = GlobalHelper.FormatTime(result.DurationSeconds);
+        }
+
+        var stats = result.Stats;
+        if (stats != null)
+        {
+            if (_killText != null) _killText.text = $"Kills: {stats.TotalEnemyKills}";
+            if (_spawnText != null) _spawnText.text = $"Spawns: {stats.TotalEnemySpawns}";
+            if (_damageDealtText != null) _damageDealtText.text = $"Damage Dealt: {stats.PlayerDamageDealt}";
+            if (_damageTakenText != null) _damageTakenText.text = $"Damage Taken: {stats.PlayerDamageTaken}";
+        }
+
+        Open();
     }
     #endregion
 

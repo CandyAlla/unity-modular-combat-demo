@@ -271,6 +271,7 @@ public class MPNpcSoulActor : MPCharacterSoulActorBase
         if (sqrDistanceToPlayer <= AttackRange * AttackRange)
         {
             _attackTimer = 0f;
+            _roomManager?.RegisterPlayerDamageTaken(AttackDamage);
             _playerTarget?.TakeDamage(AttackDamage);
         }
     }
