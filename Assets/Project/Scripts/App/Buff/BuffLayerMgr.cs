@@ -4,6 +4,7 @@ using System.Collections.Generic;
 public class BuffLayerMgr
 {
     private readonly Dictionary<BuffType, BuffInstance> _buffs = new Dictionary<BuffType, BuffInstance>();
+    public IReadOnlyDictionary<BuffType, BuffInstance> ActiveBuffs => _buffs;
     private readonly Dictionary<BuffType, BuffConfig.BuffEntry> _configLookup;
     private readonly MPAttributeComponent _attributeComponent;
 

@@ -10,6 +10,7 @@ public class UI_LoginPanel : UIBase
     #region Inspector
     [SerializeField] private Button _enterGameButton;
     [SerializeField] private Button _quitButton;
+    [SerializeField] private Button _testbutton;
     [SerializeField] private Transform _stageListRoot;
     [SerializeField] private Button _stageItemTemplate;
     [SerializeField] private TMP_Text _stageDisplayText;
@@ -31,6 +32,9 @@ public class UI_LoginPanel : UIBase
         if (_quitButton != null)
             _quitButton.onClick.AddListener(OnClickQuit);
 
+        if (_testbutton != null)
+            _testbutton.onClick.AddListener(OnClickTest);
+
         SyncSelection();
         BuildStageList();
         UpdateDiagnostics();
@@ -44,6 +48,9 @@ public class UI_LoginPanel : UIBase
 
         if (_quitButton != null)
             _quitButton.onClick.RemoveListener(OnClickQuit);
+
+        if (_testbutton != null)
+            _testbutton.onClick.RemoveListener(OnClickTest);
 
         foreach (var btn in _spawnedStageButtons)
         {
@@ -86,6 +93,12 @@ public class UI_LoginPanel : UIBase
 #else
         Application.Quit();
 #endif
+    }
+
+    private void OnClickTest()
+    {
+        Debug.Log("[LoginUI] Test clicked");
+        GameClientManager.Instance.SetTransition(SceneStateId.Test);
     }
 
     private void OnClickSelectStage(int stageId, string stageName)

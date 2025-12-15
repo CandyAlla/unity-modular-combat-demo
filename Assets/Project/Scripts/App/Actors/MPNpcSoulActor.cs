@@ -14,12 +14,14 @@ public class MPNpcSoulActor : MPCharacterSoulActorBase
     #endregion
 
     #region Fields
+    private string _uniqueId;
     private MPSoulActor _playerTarget;
     private MPRoomManager _roomManager;
     private float _attackTimer;
     private NavMeshAgent _agent;
     private bool _isPaused;
     private NpcStateManager _stateMgr;
+    private bool _movementEnabled = true;
     #endregion
 
     #region Public Methods
@@ -72,6 +74,22 @@ public class MPNpcSoulActor : MPCharacterSoulActorBase
     }
 
     public string GetPoolKey() => _poolKey;
+
+    public void SetMovementEnabled(bool enabled)
+    {
+        _movementEnabled = enabled;
+        if (_agent != null)
+        {
+            if (!enabled)
+            {
+                if (_agent.isOnNavMesh) _agent.isStopped = true;
+            }
+            else
+            {
+                if (_agent.isOnNavMesh) _agent.isStopped = false;
+            }
+        }
+    }
     #endregion
 
     #region Protected Methods
@@ -90,9 +108,16 @@ public class MPNpcSoulActor : MPCharacterSoulActorBase
         _stateMgr.ChangeState(NpcStateManager.NpcState.Idle);
     }
 
+    public void SetUniqueId(string id)
+    {
+        _uniqueId = id;
+    }
+
+    public string GetUniqueId() => _uniqueId;
+
     protected override void OnUpdateNpcMovement(float deltaTime)
     {
-        if (_isPaused || IsDead || _agent == null) return;
+        if (_isPaused || IsDead || _agent == null || !_movementEnabled) return;
         if (_stateMgr == null) return;
         
         // Priority: If stunned by hit, stop logic
@@ -215,6 +240,8 @@ public class MPNpcSoulActor : MPCharacterSoulActorBase
         CurrentHp = MaxHp;
         _attackTimer = 0f;
         _isPaused = false;
+        _movementEnabled = true;
+        // keep unique id as assigned by spawner
         if (_agent != null)
         {
             _agent.enabled = true;

@@ -204,6 +204,12 @@ public class MPSoulActor : MPCharacterSoulActorBase
         _attackCooldownTimer = ATTACK_COOLDOWN;
         Debug.Log("[MPSoulActor] Attack performed!");
 
+        var attackValue = ATTACK_DAMAGE;
+        if (_attributeComponent != null)
+        {
+            attackValue = Mathf.RoundToInt(_attributeComponent.GetValue(AttributeType.AttackPower));
+        }
+
         // Simple forward detection
         var center = transform.position + transform.forward * 1.0f;
         var hitColliders = Physics.OverlapSphere(center, ATTACK_RANGE);
@@ -213,8 +219,8 @@ public class MPSoulActor : MPCharacterSoulActorBase
             var target = hit.GetComponent<MPCharacterSoulActorBase>();
             if (target != null && target != this && !target.IsDead)
             {
-                target.TakeDamage(ATTACK_DAMAGE);
-                Debug.Log($"[MPSoulActor] Hit target: {target.name}");
+                target.TakeDamage(attackValue);
+                Debug.Log($"[MPSoulActor] Hit target: {target.name} for {attackValue}");
             }
         }
     }

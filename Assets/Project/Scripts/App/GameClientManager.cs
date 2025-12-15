@@ -45,6 +45,7 @@ public class GameClientManager : MonoBehaviour
         _dataCtrl.InitAllChapterInfos();
         _sceneStateSystem.RegisterSceneManager(new LoginSceneManager());
         _sceneStateSystem.RegisterSceneManager(new BattleSceneManager());
+        _sceneStateSystem.RegisterSceneManager(new TestSceneManager());
         _initialized = true;
         Debug.Log("[GameClientManager] OnInit");
     }

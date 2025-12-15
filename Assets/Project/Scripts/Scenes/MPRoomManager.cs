@@ -35,6 +35,7 @@ public class MPRoomManager : MonoBehaviour
     [SerializeField] private GameObject _floatTextPrefab;
     [SerializeField] private GameObject _playerHudPrefab;
     [SerializeField] private Transform _hudCanvasRoot;
+    [SerializeField] private bool _disableWaveSpawningInThisScene = false;
     [SerializeField] private MPSoulActor _localPlayer;
     #endregion
 
@@ -49,6 +50,7 @@ public class MPRoomManager : MonoBehaviour
     private readonly List<MPCharacterSoulActorBase> _actors = new List<MPCharacterSoulActorBase>();
     private readonly List<MPNpcSoulActor> _npcs = new List<MPNpcSoulActor>();
     private readonly Dictionary<MPCharacterSoulActorBase, PlayerHUD> _actorHuds = new Dictionary<MPCharacterSoulActorBase, PlayerHUD>();
+    private int _npcInstanceCounter = 0;
     private Vector3 _playerSpawnPosition;
     private Quaternion _playerSpawnRotation;
     [Header("Level Timing")]
@@ -69,6 +71,55 @@ public class MPRoomManager : MonoBehaviour
     public bool IsLevelOver => _levelStatus == LevelStatus.Over;
     public System.Action<int> OnLevelSecondTick;
     public MPSoulActor LocalPlayer => _localPlayer;
+
+    #region Debug API
+    public void DebugSpawnEnemy(int npcId, int count, bool disableMovement = false)
+    {
+        var prefab = ResolveNpcPrefab(npcId);
+        var poolKey = GetPoolKeyForNpc(npcId);
+        var npcAttrs = DataCtrl.Instance.GetNpcAttributes(npcId);
+        
+        Debug.Log($"[MPRoomManager] Debug Spawn: {count}x NPC {npcId}");
+        for (int i = 0; i < count; i++)
+        {
+            // Spawn around player or origin
+            var origin = _localPlayer != null ? _localPlayer.transform.position : Vector3.zero;
+            var pos = ResolveSpawnPositionForSpawn(origin, null, i); 
+            var npc = SpawnEnemy(npcId, npcAttrs, prefab, poolKey, pos);
+            if (npc != null && disableMovement)
+            {
+                npc.SetMovementEnabled(false);
+            }
+        }
+    }
+
+    public void DebugBuffHero(BuffType type)
+    {
+        if (_localPlayer != null)
+        {
+            _localPlayer.TryAddBuffStack(type);
+            Debug.Log($"[MPRoomManager] Debug Buff Hero: {type}");
+        }
+    }
+
+    public void DebugBuffAllNpcs(BuffType type)
+    {
+        foreach (var npc in _npcs)
+        {
+            if (npc != null && !npc.IsDead)
+            {
+                npc.TryAddBuffStack(type);
+            }
+        }
+        Debug.Log($"[MPRoomManager] Debug Buff All NPCs: {type}");
+    }
+
+    public void DebugResetHero()
+    {
+        ResetPlayerForRestart();
+        Debug.Log("[MPRoomManager] Debug Reset Hero");
+    }
+    #endregion
     #endregion
 
     #region Unity Lifecycle
@@ -342,7 +393,14 @@ public class MPRoomManager : MonoBehaviour
 
     public float GetCurrentTime() => _currentTime;
 
-    public float GetCurrentStageDuration() => _chapterInfo != null ? _chapterInfo.Duration : 0f;
+    public float GetCurrentStageDuration()
+    {
+        if (_disableWaveSpawningInThisScene)
+        {
+            return float.PositiveInfinity;
+        }
+        return _chapterInfo != null ? _chapterInfo.Duration : 0f;
+    }
 
     public void RegisterActor(MPCharacterSoulActorBase actor)
     {
@@ -578,6 +636,11 @@ public class MPRoomManager : MonoBehaviour
     {
         Debug.Log($"[MPRoomManager] Second {second} reached.");
 
+        if (_disableWaveSpawningInThisScene)
+        {
+            return;
+        }
+
         if (_secondToWaves.TryGetValue(second, out var waves) && waves != null)
         {
             foreach (var wave in waves)
@@ -671,7 +734,7 @@ public class MPRoomManager : MonoBehaviour
         return position + offset;
     }
 
-    private void SpawnEnemy(int npcId, NpcAttributesConfig.NpcAttributesEntry attrs, GameObject prefab, string poolKey, Vector3 position)
+    private MPNpcSoulActor SpawnEnemy(int npcId, NpcAttributesConfig.NpcAttributesEntry attrs, GameObject prefab, string poolKey, Vector3 position)
     {
         GameObject enemy = null;
         if (PoolManager.Inst != null)
@@ -688,7 +751,7 @@ public class MPRoomManager : MonoBehaviour
             if (prefab == null)
             {
                 Debug.LogWarning("[MPRoomManager] No enemy prefab assigned and no PoolManager available.");
-                return;
+                return null;
             }
 
             var parent = PoolManager.Inst != null ? PoolManager.Inst.RuntimeActorsRoot : _runtimeActorsRoot;
@@ -698,7 +761,7 @@ public class MPRoomManager : MonoBehaviour
         if (enemy == null)
         {
             Debug.LogWarning("[MPRoomManager] Failed to spawn enemy.");
-            return;
+            return null;
         }
 
         if (_runtimeActorsRoot != null && enemy.transform.parent != _runtimeActorsRoot)
@@ -709,6 +772,8 @@ public class MPRoomManager : MonoBehaviour
         var npc = enemy.GetComponent<MPNpcSoulActor>();
         if (npc != null)
         {
+            _npcInstanceCounter++;
+            npc.SetUniqueId($"NPC-{_npcInstanceCounter}");
             npc.Init(this, _localPlayer);
             npc.ApplyAttributes(attrs);
             npc.SetPoolKey(poolKey);
@@ -724,11 +789,14 @@ public class MPRoomManager : MonoBehaviour
             OnEnemySpawned(npc);
             RegisterActor(npc);
             RegisterNpc(npc);
+            return npc;
         }
         else
         {
             Debug.LogWarning("[MPRoomManager] Spawned enemy missing MPNpcSoulActor component.");
         }
+
+        return null;
     }
 
     private void RegisterNpc(MPNpcSoulActor npc)
@@ -883,6 +951,15 @@ public class MPRoomManager : MonoBehaviour
         {
             var cam = _camManager != null ? _camManager.MainCamera : Camera.main;
             hud.Bind(actor, actor.HudAnchor, cam);
+            // Label: show unique ID for NPCs, empty for players.
+            if (actor is MPNpcSoulActor npc)
+            {
+                hud.SetLabel(npc.GetUniqueId());
+            }
+            else
+            {
+                hud.SetLabel(string.Empty);
+            }
             _actorHuds[actor] = hud;
         }
         else

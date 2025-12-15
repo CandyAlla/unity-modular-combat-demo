@@ -9,6 +9,7 @@ public enum SceneStateId
     GameEntry = 0,
     Login = 1,
     Battle = 2,
+    Test = 3,
 }
 
 
@@ -146,6 +147,8 @@ public class SceneStateSystem
                 return "Map_Login";
             case SceneStateId.Battle:
                 return "Map_BattleScene";
+            case SceneStateId.Test:
+                return "Map_TestScene";
             default:
                 return null;
         }

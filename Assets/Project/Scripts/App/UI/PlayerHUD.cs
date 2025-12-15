@@ -9,6 +9,7 @@ public class PlayerHUD : MonoBehaviour
     [Header("UI References")]
     [SerializeField] private Slider _hpSlider;
     [SerializeField] private TextMeshProUGUI _hpText;
+    [SerializeField] private TextMeshProUGUI _labelText;
     [Header("Canvas Override (optional)")]
     [SerializeField] private Canvas _overrideCanvas;
     [Header("Offsets")]
@@ -242,6 +243,21 @@ public class PlayerHUD : MonoBehaviour
         if (_canvas != null)
         {
             _canvasRectTransform = _canvas.GetComponent<RectTransform>();
+        }
+    }
+
+    public void SetLabel(string text)
+    {
+        if (_labelText == null)
+        {
+            return;
+        }
+
+        var hasText = !string.IsNullOrEmpty(text);
+        _labelText.gameObject.SetActive(hasText);
+        if (hasText)
+        {
+            _labelText.text = text;
         }
     }
     #endregion
