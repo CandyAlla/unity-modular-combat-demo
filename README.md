@@ -85,13 +85,22 @@ Scripts
 
 ---
 
-## 5. 调试工具
+## 5. 调试系统 (Debug System)
 
-- **BuffSystemVerification**：可挂载的调试脚本，用于验证 Buff 叠加与属性计算逻辑是否正确。
+本项目包含一套完善的运行时调试工具，位于 `Map_TestScene` 或战斗场景中：
+
+- **Runtime Debug Panel (UI_DebugPanel)**
+    - **实时监控**：显示 FPS、敌人数量、玩家属性及 Buff 状态。
+    - **动态生成**：支持一键生成指定或随机怪物 (Spawn Enemy)。
+    - **Buff 调试**：支持给主角或全场 NPC 添加 Buff (加速/加攻/减速/眩晕)。
+    - **状态重置**：一键重置主角状态 (Reset Hero)。
+
+- **代码级验证**
+    - `BuffSystemVerification.cs`: 用于单元测试 Buff 叠加逻辑。
 
 ---
 
 ## 6. 后续计划 (TODO)
-- [ ] **Runtime Debug Panel**：添加运行时调试面板，实时显示怪物数量与 FPS。
+- [ ] **性能数据基准测试**：在 300+ 同屏怪环境下进行 Profiler 采样并记录具体 GC/FPS 数据。
 - [ ] **更多技能支持**：扩展技能配置系统，支持 AOE 与 投射物技能。
 - [ ] **NavMesh 动态烘焙**：支持更加复杂的动态地形寻路。
