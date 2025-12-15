@@ -53,6 +53,15 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""CastSecondSkill"",
+                    ""type"": ""Button"",
+                    ""id"": ""35711c87-fa90-4bf5-bf06-507f1e1d7e0d"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -125,11 +134,22 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
                 {
                     ""name"": """",
                     ""id"": ""8636dac7-d5ab-45f0-969c-e475b8490d5d"",
-                    ""path"": ""<Keyboard>/l"",
+                    ""path"": ""<Keyboard>/k"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
                     ""action"": ""CastSkill"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""3a23b319-e104-41e1-a5b1-8e867e4b6a13"",
+                    ""path"": ""<Keyboard>/l"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""CastSecondSkill"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -155,6 +175,7 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
         m_Player_Move = m_Player.FindAction("Move", throwIfNotFound: true);
         m_Player_Attack = m_Player.FindAction("Attack", throwIfNotFound: true);
         m_Player_CastSkill = m_Player.FindAction("CastSkill", throwIfNotFound: true);
+        m_Player_CastSecondSkill = m_Player.FindAction("CastSecondSkill", throwIfNotFound: true);
     }
 
     ~@GameInput()
@@ -224,6 +245,7 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
     private readonly InputAction m_Player_Move;
     private readonly InputAction m_Player_Attack;
     private readonly InputAction m_Player_CastSkill;
+    private readonly InputAction m_Player_CastSecondSkill;
     public struct PlayerActions
     {
         private @GameInput m_Wrapper;
@@ -231,6 +253,7 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
         public InputAction @Move => m_Wrapper.m_Player_Move;
         public InputAction @Attack => m_Wrapper.m_Player_Attack;
         public InputAction @CastSkill => m_Wrapper.m_Player_CastSkill;
+        public InputAction @CastSecondSkill => m_Wrapper.m_Player_CastSecondSkill;
         public InputActionMap Get() { return m_Wrapper.m_Player; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -249,6 +272,9 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
             @CastSkill.started += instance.OnCastSkill;
             @CastSkill.performed += instance.OnCastSkill;
             @CastSkill.canceled += instance.OnCastSkill;
+            @CastSecondSkill.started += instance.OnCastSecondSkill;
+            @CastSecondSkill.performed += instance.OnCastSecondSkill;
+            @CastSecondSkill.canceled += instance.OnCastSecondSkill;
         }
 
         private void UnregisterCallbacks(IPlayerActions instance)
@@ -262,6 +288,9 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
             @CastSkill.started -= instance.OnCastSkill;
             @CastSkill.performed -= instance.OnCastSkill;
             @CastSkill.canceled -= instance.OnCastSkill;
+            @CastSecondSkill.started -= instance.OnCastSecondSkill;
+            @CastSecondSkill.performed -= instance.OnCastSecondSkill;
+            @CastSecondSkill.canceled -= instance.OnCastSecondSkill;
         }
 
         public void RemoveCallbacks(IPlayerActions instance)
@@ -293,5 +322,6 @@ public partial class @GameInput: IInputActionCollection2, IDisposable
         void OnMove(InputAction.CallbackContext context);
         void OnAttack(InputAction.CallbackContext context);
         void OnCastSkill(InputAction.CallbackContext context);
+        void OnCastSecondSkill(InputAction.CallbackContext context);
     }
 }

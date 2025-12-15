@@ -16,7 +16,9 @@ public class UI_BattlePanel : UIBase
     [SerializeField] private TMP_Text _startButtonLabel;
     [Header("Active Skill")]
     [SerializeField] private Button _activeSkillButton;
+    [SerializeField] private Button _activeSecondSkillButton;
     [SerializeField] private Image _activeSkillCooldownMask;
+    [SerializeField] private Image _activeSecondSkillCooldownMask;
     [SerializeField] private float _cooldownMaskRotateSpeed = 180f;
     [SerializeField] private MPSoulActor _player;
     #endregion
@@ -43,6 +45,9 @@ public class UI_BattlePanel : UIBase
 
         if (_activeSkillButton != null)
             _activeSkillButton.onClick.AddListener(OnClickActiveSkill);
+        
+        if(_activeSecondSkillButton != null)
+            _activeSecondSkillButton.onClick.AddListener(OnClickSecondActiveSkill);
 
         UpdateStartButtonLabel();
     }
@@ -57,13 +62,17 @@ public class UI_BattlePanel : UIBase
 
         if (_activeSkillButton != null)
             _activeSkillButton.onClick.RemoveListener(OnClickActiveSkill);
+        
+        if(_activeSecondSkillButton != null)
+            _activeSecondSkillButton.onClick.RemoveListener(OnClickSecondActiveSkill);
     }
 
     private void Update()
     {
         UpdateTimer();
         UpdateStartButtonLabel();
-        UpdateActiveSkillUI();
+        UpdateSkillUI(_activeSkillButton, _activeSkillCooldownMask, SkillSlot.Active);
+        UpdateSkillUI(_activeSecondSkillButton, _activeSecondSkillCooldownMask, SkillSlot.Secondary);
     }
     #endregion
 
@@ -131,6 +140,20 @@ public class UI_BattlePanel : UIBase
         GameClientManager.Instance.SetTransition(SceneStateId.Login);
     }
 
+    private void OnClickSecondActiveSkill()
+    {
+        if (_player == null)
+        {
+            TryCacheActors();
+        }
+
+        if (_player != null)
+        {
+            _player.TryCastSecondarySkillFromUI();
+        }
+        
+    }
+    
     private void OnClickActiveSkill()
     {
         if (_player == null)
@@ -174,14 +197,26 @@ public class UI_BattlePanel : UIBase
         }
     }
 
-    private void UpdateActiveSkillUI()
+    private enum SkillSlot
     {
-        if (_activeSkillButton == null)
+        Active,
+        Secondary
+    }
+
+    private void UpdateSkillUI(Button button, Image mask, SkillSlot slot)
+    {
+        if (button == null)
         {
             return;
         }
 
         TryCacheActors();
+
+        // Keep button visible; just disable when not usable.
+        if (!button.gameObject.activeSelf)
+        {
+            button.gameObject.SetActive(true);
+        }
 
         var running = _roomManager != null && _roomManager.State == MPRoomManager.RoomState.Running && !_roomManager.IsPaused;
         var playerReady = _player != null && !_player.IsDead;
@@ -189,20 +224,30 @@ public class UI_BattlePanel : UIBase
         float remaining = 0f;
         float total = 0f;
         bool ready = false;
-        var hasSkill = _skillActor != null && _skillActor.TryGetActiveSkillCooldown(out remaining, out total, out ready);
+        bool hasSkill = false;
 
-        var interactable = running && playerReady && hasSkill && ready;
-        _activeSkillButton.interactable = interactable;
+        if (_skillActor != null)
+        {
+            hasSkill = slot == SkillSlot.Active
+                ? _skillActor.TryGetActiveSkillCooldown(out remaining, out total, out ready)
+                : _skillActor.TryGetSecondarySkillCooldown(out remaining, out total, out ready);
+        }
 
-        if (_activeSkillCooldownMask != null)
+        var interactable = running && playerReady && (!hasSkill || ready);
+        button.interactable = interactable;
+
+        if (mask != null)
         {
             var showMask = hasSkill && !ready && total > 0f;
-            _activeSkillCooldownMask.gameObject.SetActive(showMask);
+            mask.gameObject.SetActive(showMask);
             if (showMask)
             {
                 var fill = total <= 0.0001f ? 0f : Mathf.Clamp01(remaining / Mathf.Max(total, 0.0001f));
-                _activeSkillCooldownMask.fillAmount = fill;
-                // _activeSkillCooldownMask.rectTransform.Rotate(0f, 0f, _cooldownMaskRotateSpeed * Time.deltaTime);
+                mask.fillAmount = fill;
+            }
+            else
+            {
+                mask.fillAmount = 0f;
             }
         }
     }
@@ -227,10 +272,11 @@ public class UI_BattlePanel : UIBase
         if (_player != null && _skillActor == null)
         {
             _skillActor = _player.GetSkillActor();
-            if (_skillActor == null)
-            {
-                _skillActor = _player.GetComponent<MPSkillActorLite>();
-            }
+        }
+
+        if (_player != null && _skillActor == null)
+        {
+            _skillActor = _player.GetComponent<MPSkillActorLite>();
         }
     }
     #endregion

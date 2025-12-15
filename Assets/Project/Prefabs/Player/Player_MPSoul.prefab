@@ -103,6 +103,7 @@ MonoBehaviour:
   MaxHp: 100
   CurrentHp: 100
   _hudAnchor: {fileID: 906618739732396216}
+  _healthBarHeight: 2
   _hurtRenderer: {fileID: 0}
   _hurtFlashColor: {r: 1, g: 1, b: 1, a: 1}
   _hurtFlashDuration: 0.2
@@ -166,17 +167,26 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _primarySkill:
-    Config: {fileID: 11400000, guid: 2e9f7bfe94fd4f93b5ae0a37bd10fc56, type: 2}
+    Config: {fileID: 11400000, guid: 0c59c903375924546a9fc3e21d2924b2, type: 2}
     LastPhase: 0
     LastDirection: {x: 0, y: 0, z: 1}
     LastTarget: {x: 0, y: 0, z: 0}
     PoolKey: 
   _activeSkill:
-    Config: {fileID: 11400000, guid: d4f3bb87a303492aafa2938f889b017a, type: 2}
+    Config: {fileID: 11400000, guid: e5d46ae402d7d4e8ca83df0261bb4f3d, type: 2}
     LastPhase: 0
     LastDirection: {x: 0, y: 0, z: 1}
     LastTarget: {x: 0, y: 0, z: 0}
     PoolKey: 
+  _secondaryActiveSkill:
+    Config: {fileID: 11400000, guid: ce44ca661410e437585d5c1786cf7de9, type: 2}
+    LastPhase: 0
+    LastDirection: {x: 0, y: 0, z: 1}
+    LastTarget: {x: 0, y: 0, z: 0}
+    PoolKey: 
+  _primarySkillResourcePath: Configs/Skill/PrimaryAttack
+  _activeSkillResourcePath: Configs/Skill/ActiveAoE
+  _secondarySkillResourcePath: Configs/Skill/ActiveBarrage
 --- !u!1 &7681412047750261235
 GameObject:
   m_ObjectHideFlags: 0

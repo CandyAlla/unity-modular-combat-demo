@@ -22,4 +22,7 @@ MonoBehaviour:
   AnimState: Attack
   HitEffectPrefab: {fileID: 0}
   ProjectilePrefab: {fileID: 0}
+  ProjectileSpeed: 0
+  ProjectileLifeTime: 0
+  ProjectileDamage: 0
   Category: 0

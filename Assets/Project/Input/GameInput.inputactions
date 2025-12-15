@@ -31,6 +31,15 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "CastSecondSkill",
+                    "type": "Button",
+                    "id": "35711c87-fa90-4bf5-bf06-507f1e1d7e0d",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -103,11 +112,22 @@
                 {
                     "name": "",
                     "id": "8636dac7-d5ab-45f0-969c-e475b8490d5d",
-                    "path": "<Keyboard>/l",
+                    "path": "<Keyboard>/k",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
                     "action": "CastSkill",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "3a23b319-e104-41e1-a5b1-8e867e4b6a13",
+                    "path": "<Keyboard>/l",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "CastSecondSkill",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

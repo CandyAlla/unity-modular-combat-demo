@@ -17,11 +17,12 @@ public class MPSoulActor : MPCharacterSoulActorBase
     private Vector2 _moveInput;
     private bool _canControl = true;
     private MPCamManager _camManager;
-    private float _attackCooldownTimer;
+    private MPSkillActorLite.SkillSlot _primarySlot;
+    private MPSkillActorLite.SkillSlot _activeSlot;
+    private MPSkillActorLite.SkillSlot _secondarySlot;
     #endregion
 
     #region Constants
-    private const float ATTACK_COOLDOWN = 0.5f;
     private const float ATTACK_RANGE = 10f;
     private const int ATTACK_DAMAGE = 10;
     #endregion
@@ -52,24 +53,16 @@ public class MPSoulActor : MPCharacterSoulActorBase
 
     private void Update()
     {
-        if (_attackCooldownTimer > 0f)
-        {
-            _attackCooldownTimer -= Time.deltaTime;
-        }
-
-        // DEBUG: Press K to add Speed Buff
-        if (Keyboard.current.kKey.wasPressedThisFrame)
-        {
-            Debug.Log("[MPSoulActor] Debug Input: Adding MoveSpeedUp Buff");
-            TryAddBuffStack(BuffType.MoveSpeedUp);
-        }
-
         _skillActor?.Tick(Time.deltaTime);
     }
 
     protected override void OnDestroy()
     {
         _input?.Dispose();
+        if (_skillActor != null)
+        {
+            _skillActor.OnSkillActivated -= OnSkillActivated;
+        }
     }
     #endregion
 
@@ -91,6 +84,7 @@ public class MPSoulActor : MPCharacterSoulActorBase
         if (_skillActor != null)
         {
             _skillActor.Initialize(gameObject);
+            BindSkillActor();
         }
     }
 
@@ -164,6 +158,7 @@ public class MPSoulActor : MPCharacterSoulActorBase
         if (_skillActor != null)
         {
             _skillActor.Initialize(gameObject);
+            BindSkillActor();
         }
     }
 
@@ -191,39 +186,12 @@ public class MPSoulActor : MPCharacterSoulActorBase
 
     private void OnAttack(InputAction.CallbackContext context)
     {
-        if (!_canControl || _attackCooldownTimer > 0f)
+        if (!_canControl)
         {
             return;
         }
 
-        PerformAttack();
-    }
-
-    private void PerformAttack()
-    {
-        _attackCooldownTimer = ATTACK_COOLDOWN;
-        Debug.Log("[MPSoulActor] Attack performed!");
-
-        var attackValue = ATTACK_DAMAGE;
-        if (_attributeComponent != null)
-        {
-            attackValue = Mathf.RoundToInt(_attributeComponent.GetValue(AttributeType.AttackPower));
-        }
-
-        // Simple forward detection
-        var center = transform.position + transform.forward * 1.0f;
-        var hitColliders = Physics.OverlapSphere(center, ATTACK_RANGE);
-        
-        foreach (var hit in hitColliders)
-        {
-            var target = hit.GetComponent<MPCharacterSoulActorBase>();
-            if (target != null && target != this && !target.IsDead)
-            {
-                target.TakeDamage(attackValue);
-                MPRoomManager.Inst?.RegisterPlayerDamageDealt(attackValue);
-                Debug.Log($"[MPSoulActor] Hit target: {target.name} for {attackValue}");
-            }
-        }
+        PerformPrimarySkill();
     }
 
     private void OnCastSkill(InputAction.CallbackContext context)
@@ -231,6 +199,14 @@ public class MPSoulActor : MPCharacterSoulActorBase
         if (context.performed)
         {
             TryCastActiveSkillFromUI();
+        }
+    }
+
+    private void OnCastSecondSkill(InputAction.CallbackContext context)
+    {
+        if (context.performed)
+        {
+            TryCastSecondarySkillFromUI();
         }
     }
 
@@ -262,14 +238,58 @@ public class MPSoulActor : MPCharacterSoulActorBase
 
     public bool TryCastActiveSkillFromUI()
     {
-        if (!_canControl || _skillActor == null || (MPRoomManager.Inst != null && MPRoomManager.Inst.IsPaused))
+        return TryCastSkillSlot(_activeSlot, "Active skill");
+    }
+
+    public bool TryCastSecondarySkillFromUI()
+    {
+        return TryCastSkillSlot(_secondarySlot, "Secondary skill");
+    }
+
+    private void PerformPrimarySkill()
+    {
+        if (_skillActor == null || _primarySlot == null || _primarySlot.Controller == null)
+        {
+            ExecuteMeleeHit(null); // fallback
+            return;
+        }
+
+        if (!_skillActor.IsPrimaryReady())
+        {
+            return;
+        }
+
+        var dir = transform.forward;
+        var targetPos = transform.position + dir * 2f;
+        _skillActor.OnPrimaryAttackInput(targetPos, dir);
+    }
+
+    private bool TryCastSkillSlot(MPSkillActorLite.SkillSlot slot, string debugLabel)
+    {
+        if (!_canControl || _skillActor == null || slot == null || slot.Controller == null || (MPRoomManager.Inst != null && MPRoomManager.Inst.IsPaused))
         {
             return false;
         }
 
-        // Aim toward nearest NPC; fallback to forward.
-        var dir = transform.forward;
-        var targetPos = transform.position + dir * 2f;
+        ResolveSkillTarget(out var targetPos, out var dir);
+
+        var casted = _skillActor.TryCastSlot(slot, targetPos, dir);
+        if (casted)
+        {
+            var name = slot.Config != null ? slot.Config.DisplayName : debugLabel;
+            Debug.Log($"[MPSoulActor] Casting {name}");
+        }
+        else
+        {
+            Debug.LogWarning($"[MPSoulActor] {debugLabel} not ready or missing config.");
+        }
+        return casted;
+    }
+
+    private void ResolveSkillTarget(out Vector3 targetPos, out Vector3 dir)
+    {
+        dir = transform.forward;
+        targetPos = transform.position + dir * 2f;
 
         var nearest = FindNearestNpc();
         if (nearest != null)
@@ -282,22 +302,64 @@ public class MPSoulActor : MPCharacterSoulActorBase
                 targetPos = nearest.transform.position;
             }
         }
+    }
 
-        var casted = _skillActor.OnActiveSkillInput(targetPos, dir);
-        if (casted)
+    private void OnSkillActivated(MPSkillActorLite.SkillSlot slot)
+    {
+        if (slot == null)
         {
-            Debug.Log("[MPSoulActor] Casting skill...");
-        }
-        else
-        {
-            Debug.Log("[MPSoulActor] Active skill not ready or missing config.");
+            return;
         }
 
-        return casted;
+        if (slot == _primarySlot)
+        {
+            ExecuteMeleeHit(slot.Config);
+        }
+    }
+
+    private void ExecuteMeleeHit(SkillConfig config)
+    {
+        var attackValue = ATTACK_DAMAGE;
+        if (_attributeComponent != null)
+        {
+            attackValue = Mathf.RoundToInt(_attributeComponent.GetValue(AttributeType.AttackPower));
+        }
+        else if (config != null && config.BaseDamage > 0f)
+        {
+            attackValue = Mathf.RoundToInt(config.BaseDamage);
+        }
+
+        var center = transform.position + transform.forward * 1.0f;
+        var hitColliders = Physics.OverlapSphere(center, ATTACK_RANGE);
+
+        foreach (var hit in hitColliders)
+        {
+            var target = hit.GetComponent<MPCharacterSoulActorBase>();
+            if (target != null && target != this && !target.IsDead)
+            {
+                target.TakeDamage(attackValue);
+                MPRoomManager.Inst?.RegisterPlayerDamageDealt(attackValue);
+                Debug.Log($"[MPSoulActor] Skill hit: {target.name} for {attackValue}");
+            }
+        }
     }
 
     public MPSkillActorLite GetSkillActor() => _skillActor;
     #endregion
+
+    private void BindSkillActor()
+    {
+        if (_skillActor == null)
+        {
+            return;
+        }
+
+        _skillActor.OnSkillActivated -= OnSkillActivated;
+        _primarySlot = _skillActor.PrimarySlot;
+        _activeSlot = _skillActor.ActiveSlot;
+        _secondarySlot = _skillActor.SecondaryActiveSlot;
+        _skillActor.OnSkillActivated += OnSkillActivated;
+    }
 
     #region Input Wrapper
     private class PlayerActions : GameInput.IPlayerActions
@@ -325,6 +387,11 @@ public class MPSoulActor : MPCharacterSoulActorBase
         public void OnCastSkill(InputAction.CallbackContext context)
         {
             _owner.OnCastSkill(context);
+        }
+
+        public void OnCastSecondSkill(InputAction.CallbackContext context)
+        {
+            _owner.OnCastSecondSkill(context);
         }
     }
     #endregion
