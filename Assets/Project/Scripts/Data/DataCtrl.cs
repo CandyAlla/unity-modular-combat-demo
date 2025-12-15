@@ -46,7 +46,10 @@ public class DataCtrl
         LoadNpcAttributesConfig();
         LoadHeroAttributesConfig();
         LoadBuffConfig();
-        var configs = Resources.LoadAll<MainChapterConfig>(string.Empty);
+        LoadNpcAttributesConfig();
+        LoadHeroAttributesConfig();
+        LoadBuffConfig();
+        var configs = Resources.LoadAll<MainChapterConfig>(GameConsts.PATH_CONFIG_MAIN_CHAPTER);
         System.Array.Sort(configs, (a, b) => string.CompareOrdinal(a != null ? a.name : string.Empty, b != null ? b.name : string.Empty));
 
         foreach (var config in configs)
@@ -189,7 +192,7 @@ public class DataCtrl
     #region Private Methods
     private void LoadNpcAttributesConfig()
     {
-        var cfg = Resources.Load<NpcAttributesConfig>("Configs/NpcAttributesConfig");
+        var cfg = Resources.Load<NpcAttributesConfig>(GameConsts.PATH_CONFIG_NPC_ATTRIBUTES);
         if (cfg == null || cfg.Entries == null)
         {
             Debug.LogWarning("[DataCtrl] NpcAttributesConfig not found or empty.");
@@ -228,7 +231,7 @@ public class DataCtrl
 
     private void LoadHeroAttributesConfig()
     {
-        var cfg = Resources.Load<HeroAttributesConfig>("Configs/HeroAttributesConfig");
+        var cfg = Resources.Load<HeroAttributesConfig>(GameConsts.PATH_CONFIG_HERO_ATTRIBUTES);
         if (cfg == null || cfg.Entries == null)
         {
             Debug.LogWarning("[DataCtrl] HeroAttributesConfig not found.");
@@ -256,7 +259,7 @@ public class DataCtrl
 
     private void LoadBuffConfig()
     {
-        var cfg = Resources.Load<BuffConfig>("Configs/BuffConfig");
+        var cfg = Resources.Load<BuffConfig>(GameConsts.PATH_CONFIG_BUFF);
         if (cfg == null || cfg.Entries == null)
         {
             Debug.LogWarning("[DataCtrl] BuffConfig not found or Entries is null.");

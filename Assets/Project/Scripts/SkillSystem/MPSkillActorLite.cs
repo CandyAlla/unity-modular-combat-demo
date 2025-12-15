@@ -22,9 +22,10 @@ public class MPSkillActorLite : MonoBehaviour
     [SerializeField] private SkillSlot _activeSkill;
     [SerializeField] private SkillSlot _secondaryActiveSkill;
     [Header("Default Skill Paths (Resources)")]
-    [SerializeField] private string _primarySkillResourcePath = "Configs/Skill/PrimaryAttack";
-    [SerializeField] private string _activeSkillResourcePath = "Configs/Skill/ActiveAoE";
-    [SerializeField] private string _secondarySkillResourcePath = "Configs/Skill/ActiveBarrage";
+    [Header("Default Skill Paths (Resources)")]
+    [SerializeField] private string _primarySkillResourcePath = GameConsts.PATH_CONFIG_SKILL_PRIMARY;
+    [SerializeField] private string _activeSkillResourcePath = GameConsts.PATH_CONFIG_SKILL_ACTIVE;
+    [SerializeField] private string _secondarySkillResourcePath = GameConsts.PATH_CONFIG_SKILL_SECONDARY;
     #endregion
 
     #region Fields

@@ -142,13 +142,13 @@ public class SceneStateSystem
         switch (target)
         {
             case SceneStateId.GameEntry:
-                return "Map_GameEntry";
+                return GameConsts.MAP_GAMEENTRY;
             case SceneStateId.Login:
-                return "Map_Login";
+                return GameConsts.MAP_LOGIN;
             case SceneStateId.Battle:
-                return "Map_BattleScene";
+                return GameConsts.MAP_BATTLESCENE;
             case SceneStateId.Test:
-                return "Map_TestScene";
+                return GameConsts.MAP_TESTSCENE;
             default:
                 return null;
         }
