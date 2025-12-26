@@ -1,106 +1,156 @@
-# Battle Demo (Unity 3D Action Roguelite)
+# Battle Demo (Unity 3D Roguelite Combat Demo)
 
-> **面试作品仓库** | Unity 2021+ LTS | URP | C#
+> Portfolio repository | Unity 2021 LTS+ | URP | C#
 
-## 1. 项目简介
+## 1. Overview
 
-本项目是一个展示 Unity 客户端架构能力与工程化实践的 **3D 俯视角战斗 Demo**。
-主要演示了**模块化架构**、**数据驱动的关卡设计**、**状态机驱动的流程管理**以及**基础的性能优化方案**。
+This project is a **top-down 3D combat demo** built for interview showcase. The focus is on clear architecture, modularization, data-driven design, and engineering practices rather than full game content.
 
-**核心亮点：**
-- **清晰架构**：基于 `GameEntry` + `SceneStateSystem` 的生命周期与流程管理。
-- **数据驱动**：关卡波次（Wave）与怪物刷新完全由 ScriptableObject 配置驱动。
-- **模块化战斗**：Actor 模型（Player/NPC）与 Buff 系统分离，支持灵活扩展。
-- **性能意识**：内置 `PoolManager` 实现对象池复用，减少运行时 GC 与实例化开销。
+**Highlights**
+- Scene flow: `GameEntry` + `SceneStateSystem` for unified transitions
+- Data-driven: level waves authored with ScriptableObjects
+- Modular combat: Actor/Buff/Skill separated for extension
+- Performance awareness: object pools + centralized ticking to reduce GC/spikes
 
----
+## 2. Scene Flow
 
-## 2. 核心架构
+Flow: `Map_GameEntry` -> `Map_Login` -> `Map_BattleScene` -> Settlement -> back to `Map_Login`.
 
-项目代码主要位于 `Assets/Project/Scripts`，遵循分层设计原则：
+Key points:
+- All scene switches go through `SceneStateSystem`; no direct `SceneManager.LoadScene` from gameplay scripts.
+- `UI_LoginPanel` handles stage selection and entry to battle.
 
-### 2.1 目录结构
+## 3. Structure (Core)
+
 ```text
-Scripts
+Assets/Project/Scripts
 ├── App
-│   ├── Core              # 核心框架 (Singleton, FSM)
-│   ├── Actors            # 角色实体 (Player, NPC)
-│   ├── Buff              # Buff 系统 (LayerMgr, BufferInstance)
-│   ├── Camera            # 相机控制
-│   ├── Debug             # 调试工具
-│   ├── UI                # UI 框架 (UIManager, UIBase)
-│   ├── SceneStateSystem.cs # 场景状态机
-│   └── PoolManager.cs    # 对象池管理
-├── Data
-│   └── Configs           # 配置数据定义 (MainChapterConfig)
-├── Scenes
-│   ├── LoginScene        # 登录/Hub 逻辑
-│   └── BattleScene       # 战斗核心逻辑
-└── UI                    # 具体 UI 实现 (UI_LoginPanel, UI_BattleSettlement)
+│   ├── Actors           # Actor base and NPC AI
+│   ├── Attributes       # Attribute system
+│   ├── Buff             # Buff stacking and effects
+│   ├── Camera           # Camera follow
+│   ├── Core             # Event bus, base systems
+│   ├── Debug            # Debug panel and verification scripts
+│   ├── UI               # UI base and manager
+│   ├── PoolManager.cs   # Object pooling entry
+│   └── SceneStateSystem.cs
+├── Combat               # Combat logic (projectiles/feedback)
+├── Data                 # Config data (level/skill)
+├── Player               # Player control and skill triggers
+├── Scenes               # Scene managers
+├── SkillSystem          # Runtime skill control
+└── UI                   # Concrete UI screens
 ```
 
-### 2.2 关键模块说明
+Config data:
+```
+Assets/Project/Resources/Configs
+```
 
-- **场景流程 (Scene Flow)**
-    - 使用 `SceneStateSystem` 统一管理场景切换（Entry -> Login/Hub -> Battle）。
-    - 避免直接调用 `SceneManager.LoadScene`，确保转场前后的资源清理与初始化 (`DoBeforeLeaving`, `DoBeforeEntering`)。
+## 4. Quick Start
 
-- **战斗系统 (Battle Core)**
-    - **Actor 设计**：`MPCharacterSoulActorBase` 作为基类，封装了属性、状态与基础行为。
-    - **Buff 系统**：独立的 `BuffLayerMgr` 管理 Buff 的叠加、刷新与移除。支持 `MoveSpeedUp` 等多种效果。
+1. Open the project with Unity 2021.3 LTS or later.
+2. Open scene: `Assets/Scenes/Map_GameEntry.unity`
+3. Play. The game auto-enters `Map_Login`.
+4. Select a stage and click "Start Battle".
 
-- **关卡配置 (Data Driven)**
-    - 关卡逻辑不写死。通过 `MainChapterConfig` 配置总时长与波次。
-    - `NPCSpawnData` 定义每一波的怪物种类、数量与刷新节奏。
+## 5. Controls
 
----
+- Move: W/A/S/D
+- Basic attack: J
+- Active skill 1: K (or UI button)
+- Active skill 2: L (or UI button)
 
-## 3. 快速开始 (Quick Start)
+## 6. Level Config (Data-Driven)
 
-1. **环境准备**：
-    - Unity Editor 2021.3 LTS 或更高版本。
-    - 确保已安装 URP (Universal Render Pipeline) 包。
+### 6.1 Config Structure
 
-2. **运行步骤**：
-    - 打开 `Assets/Scenes/Map_GameEntry.unity`。
-    - 点击 Editor 播放按钮。
-    - 游戏将自动初始化，跳转至 Hub (Login) 界面。
-    - 点击 **"开始战斗"** 按钮进入战斗演示。
+`MainChapterConfig` (ScriptableObject)
+- StageId: stage id
+- Duration: duration in seconds
+- Waves: List<NPCSpawnData>
 
----
+`NPCSpawnData`
+- Time: trigger second
+- NpcId: npc id
+- NpcCount: count
+- SpawnPointIndex: spawn point index
+- SpawnPosition: fixed spawn position (optional)
 
-## 4. 性能优化 (Performance)
+### 6.2 Examples
 
-针对同屏大量怪物（300+）的需求，项目采取了以下优化措施：
+**Stage_01_Easy**
+- Duration: 120s
+- Wave timing: 3/10/18/25/35/45/55/70/85/100 seconds
+- Enemies: 101 (common), 102 (elite) in mid/late waves
 
-### 4.1 对象池 (Object Pooling)
-- **问题**：高频率创建/销毁子弹与怪物会导致 CPU 峰值与 GC 压力。
-- **方案**：实现了 `PoolManager`。
-    - **预加载**：进入战斗场景时，根据配置预先实例化指定数量的怪物与特效。
-    - **复用**：怪物死亡时仅 `SetActive(false)` 并回收至池，而非销毁。
-- **效果**：显著降低了战斗过程中的 GC Alloc，帧率波动更加平滑。
+**Stage_02_Rush**
+- Duration: 90s
+- Wave timing: 2s start, dense waves at 31-40s
+- Enemies: 102 (high pressure)
 
-### 4.2 结构化数据
-- 核心战斗计算尽量采用轻量级数据结构，减少引用类型造成的内存碎片。
+Assets:
+```
+Assets/Project/Resources/Configs/Stage_01_Easy.asset
+Assets/Project/Resources/Configs/Stage_02_Rush.asset
+```
 
----
+## 7. Combat & Skill System
 
-## 5. 调试系统 (Debug System)
+### 7.1 Actors
+- `MPCharacterSoulActorBase` handles HP, damage, death events.
+- `MPSoulActor`: player character.
+- `MPNpcSoulActor`: NPC AI (chase/attack).
 
-本项目包含一套完善的运行时调试工具，位于 `Map_TestScene` 或战斗场景中：
+### 7.2 Buff System
+- `BuffLayerMgr` handles stacking/refresh/expiry.
+- Buffs modify attributes at runtime (speed/attack).
+- Debug panel shows active buffs with stacks.
 
-- **Runtime Debug Panel (UI_DebugPanel)**
-    - **实时监控**：显示 FPS、敌人数量、玩家属性及 Buff 状态。
-    - **动态生成**：支持一键生成指定或随机怪物 (Spawn Enemy)。
-    - **Buff 调试**：支持给主角或全场 NPC 添加 Buff (加速/加攻/减速/眩晕)。
-    - **状态重置**：一键重置主角状态 (Reset Hero)。
+### 7.3 Skill System
+- `SkillRuntimeController`: state machine (Casting/Active/Recovery).
+- `MPSkillActorLite`: primary + two active skills.
+- Configured skills:
+  - PrimaryAttack (basic melee)
+  - ActiveAoE (area damage)
+  - ActiveBarrage (fast projectile)
 
-- **代码级验证**
-    - `BuffSystemVerification.cs`: 用于单元测试 Buff 叠加逻辑。
+Assets:
+```
+Assets/Project/Resources/Configs/Skill/PrimaryAttack.asset
+Assets/Project/Resources/Configs/Skill/ActiveAoE.asset
+Assets/Project/Resources/Configs/Skill/ActiveBarrage.asset
+```
 
----
+## 8. UI & Settlement
 
-## 6. 后续计划 (TODO)
-- [ ] **性能数据基准测试**：在 300+ 同屏怪环境下进行 Profiler 采样并记录具体 GC/FPS 数据。
-- [ ] **更多技能支持**：扩展技能配置系统，支持 AOE 与 投射物技能。
-- [ ] **NavMesh 动态烘焙**：支持更加复杂的动态地形寻路。
+UI is managed by `UIManager`:
+- `UI_LoginPanel`: stage select + enter battle
+- `UI_BattlePanel`: timer/pause/skill buttons
+- `UI_BattleSettlement`: result (win/lose, time, kills, spawns, damage stats)
+
+## 9. Debug Tools
+
+- `UI_DebugPanel`: stage time, enemy count, player stats, buffs
+- `BuffSystemVerification`: validate buff stacking logic
+- Test entry: `Map_Login` "Test" button -> `Map_TestScene`
+
+## 10. Performance (Template)
+
+### 10.1 Problem (to fill)
+- On-screen enemies: 300+
+- Initial FPS/GC/CPU cost: TBD
+
+### 10.2 Optimization
+- Object pooling: `PoolManager` for NPCs/bullets/floating text/HP bars
+- Centralized tick: `MPRoomManager` updates actors
+
+### 10.3 Result (to fill)
+- FPS improvement: TBD
+- GC allocation: TBD
+
+## 11. TODO
+
+- Runtime debug panel hotkey
+- Better skill VFX
+- Performance numbers + capture video
