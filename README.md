@@ -1,5 +1,7 @@
 # Battle Demo (Unity 3D Roguelite Combat Demo)
 
+[中文说明](README.zh-CN.md)
+
 > Portfolio repository | Unity 2021 LTS+ | URP | C#
 
 ## 1. Overview
