@@ -19,6 +19,7 @@ MonoBehaviour:
     AttackDamage: 10
     AttackInterval: 1
     AttackRange: 1.2
+    SearchRange: 50
     Prefab: {fileID: 7546300052191640917, guid: bb72b0a72115649c59c421592472133d, type: 3}
   - NpcId: 102
     MaxHp: 60
@@ -26,6 +27,7 @@ MonoBehaviour:
     AttackDamage: 12
     AttackInterval: 0.8
     AttackRange: 1.2
+    SearchRange: 50
     Prefab: {fileID: 7546300052191640917, guid: 8977174980ec94d8abacfddaf67c270e, type: 3}
   - NpcId: 103
     MaxHp: 60
@@ -33,4 +35,5 @@ MonoBehaviour:
     AttackDamage: 12
     AttackInterval: 0.8
     AttackRange: 1.2
+    SearchRange: 50
     Prefab: {fileID: 7546300052191640917, guid: 09d349f38437e4c83955d6f1c2de07da, type: 3}

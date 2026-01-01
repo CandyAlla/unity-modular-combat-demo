@@ -51,6 +51,7 @@ public class MPNpcSoulActor : MPCharacterSoulActorBase
         AttackDamage = attrs.AttackDamage;
         AttackInterval = attrs.AttackInterval;
         AttackRange = attrs.AttackRange;
+        SearchRange = attrs.SearchRange;
 
         if (_attributeComponent != null)
         {

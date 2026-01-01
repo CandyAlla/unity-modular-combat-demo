@@ -10,6 +10,9 @@ public class PlayerHUD : MonoBehaviour
     [SerializeField] private Slider _hpSlider;
     [SerializeField] private TextMeshProUGUI _hpText;
     [SerializeField] private TextMeshProUGUI _labelText;
+    [SerializeField] private Image _hpFillImage;
+    [Header("Colors")]
+    [SerializeField] private Color _playerHpColor = new Color(0.2f, 0.85f, 0.2f, 1f);
     [Header("Canvas Override (optional)")]
     [SerializeField] private Canvas _overrideCanvas;
     [Header("Offsets")]
@@ -48,6 +51,8 @@ public class PlayerHUD : MonoBehaviour
         _rectTransform.pivot = new Vector2(0.5f, 0.5f);
 
         Subscribe();
+        ApplyHpColor();
+        ConfigureSlider();
         RefreshNow();
     }
     #endregion
@@ -57,11 +62,22 @@ public class PlayerHUD : MonoBehaviour
     {
         _rectTransform = GetComponent<RectTransform>();
         CacheCanvas();
+        CacheHpFillImage();
+        ConfigureSlider();
     }
 
     private void OnDisable()
     {
         Unsubscribe();
+    }
+
+    private void OnEnable()
+    {
+        if (_actor != null)
+        {
+            Subscribe();
+            RefreshNow();
+        }
     }
 
     private void OnDestroy()
@@ -204,6 +220,7 @@ public class PlayerHUD : MonoBehaviour
         {
             UpdateHpBar(0, 1);
         }
+        ApplyHpColor();
         UpdatePosition();
     }
 
@@ -243,6 +260,41 @@ public class PlayerHUD : MonoBehaviour
         if (_canvas != null)
         {
             _canvasRectTransform = _canvas.GetComponent<RectTransform>();
+        }
+    }
+
+    private void CacheHpFillImage()
+    {
+        if (_hpFillImage == null && _hpSlider != null && _hpSlider.fillRect != null)
+        {
+            _hpFillImage = _hpSlider.fillRect.GetComponent<Image>();
+        }
+    }
+
+    private void ConfigureSlider()
+    {
+        if (_hpSlider == null)
+        {
+            return;
+        }
+
+        _hpSlider.interactable = false;
+        var nav = _hpSlider.navigation;
+        nav.mode = Navigation.Mode.None;
+        _hpSlider.navigation = nav;
+    }
+
+    private void ApplyHpColor()
+    {
+        CacheHpFillImage();
+        if (_hpFillImage == null || _actor == null)
+        {
+            return;
+        }
+
+        if (_actor is MPSoulActor)
+        {
+            _hpFillImage.color = _playerHpColor;
         }
     }
 

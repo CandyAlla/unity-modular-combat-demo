@@ -49,6 +49,11 @@ public class UI_BattleSettlement : UIBase
             return;
         }
 
+        if (_roomManager != null)
+        {
+            _roomManager.SetHudVisible(false);
+        }
+
         if (_resultText != null)
         {
             _resultText.text = result.IsWin ? "Victory" : "Defeat";
@@ -85,11 +90,19 @@ public class UI_BattleSettlement : UIBase
     private void OnClickRetry()
     {
         Close();
+        if (_roomManager != null)
+        {
+            _roomManager.SetHudVisible(true);
+        }
         _roomManager?.RestartLevel();
     }
 
     private void OnClickBack()
     {
+        if (_roomManager != null)
+        {
+            _roomManager.SetHudVisible(true);
+        }
         GameClientManager.Instance.SetTransition(SceneStateId.Login);
     }
     #endregion

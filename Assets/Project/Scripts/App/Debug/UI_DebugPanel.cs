@@ -13,6 +13,7 @@ public class UI_DebugPanel : UIBase
     [SerializeField] private UnityEngine.UI.Button _btnSpawnEnemy;
     [SerializeField] private UnityEngine.UI.Button _btnResetHero;
     [SerializeField] private UnityEngine.UI.Button _btnSpawnEnemyStatic;
+    [SerializeField] private UnityEngine.UI.Button _btnExitToLogin;
     [Header("Buff Selection")]
     [SerializeField] private TMP_Dropdown _buffDropdown;
     [SerializeField] private UnityEngine.UI.Button _btnApplyBuffHero;
@@ -39,6 +40,7 @@ public class UI_DebugPanel : UIBase
         if (_btnSpawnEnemy != null) _btnSpawnEnemy.onClick.AddListener(() => MPRoomManager.Inst?.DebugSpawnEnemy(101, 1, false));
         if (_btnSpawnEnemyStatic != null) _btnSpawnEnemyStatic.onClick.AddListener(() => MPRoomManager.Inst?.DebugSpawnEnemy(101, 1, true));
         if (_btnResetHero != null) _btnResetHero.onClick.AddListener(() => MPRoomManager.Inst?.DebugResetHero());
+        if (_btnExitToLogin != null) _btnExitToLogin.onClick.AddListener(OnClickExitToLogin);
         if (_btnApplyBuffHero != null) _btnApplyBuffHero.onClick.AddListener(ApplySelectedBuffHero);
         if (_btnApplyBuffNpcs != null) _btnApplyBuffNpcs.onClick.AddListener(ApplySelectedBuffNpcs);
         if (_btnAllyBuffToAllNpcs != null) _btnAllyBuffToAllNpcs.onClick.AddListener(ApplySelectedBuffAllNpcs);
@@ -63,6 +65,7 @@ public class UI_DebugPanel : UIBase
         if (_btnSpawnEnemy != null) _btnSpawnEnemy.onClick.RemoveAllListeners();
         if (_btnSpawnEnemyStatic != null) _btnSpawnEnemyStatic.onClick.RemoveAllListeners();
         if (_btnResetHero != null) _btnResetHero.onClick.RemoveAllListeners();
+        if (_btnExitToLogin != null) _btnExitToLogin.onClick.RemoveListener(OnClickExitToLogin);
 
         if (_buffDropdown != null)
         {
@@ -80,6 +83,18 @@ public class UI_DebugPanel : UIBase
     #endregion
 
     #region Private Methods
+    private void OnClickExitToLogin()
+    {
+        if (GameClientManager.Instance != null)
+        {
+            GameClientManager.Instance.SetTransition(SceneStateId.Login);
+        }
+        else
+        {
+            Debug.LogWarning("[UI_DebugPanel] GameClientManager not found; cannot exit to Login.");
+        }
+    }
+
     private void RefreshDisplay()
     {
         if (_statsText == null) return;

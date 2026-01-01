@@ -73,6 +73,7 @@ public class MPRoomManager : MonoBehaviour
     private int _npcInstanceCounter = 0;
     private Vector3 _playerSpawnPosition;
     private Quaternion _playerSpawnRotation;
+    private bool _hudsVisible = true;
     [Header("Level Timing")]
     private LevelStatus _levelStatus = LevelStatus.Idle;
     private bool _isWin;
@@ -265,6 +266,7 @@ public class MPRoomManager : MonoBehaviour
         _lastSecond = -1;
         _actors.Clear();
         ReleaseAllHuds();
+        _hudsVisible = true;
         ResetBattleStats();
 
         if (_localPlayer == null)
@@ -487,6 +489,7 @@ public class MPRoomManager : MonoBehaviour
         _actors.Clear();
         _aliveEnemyCount = 0;
         BulletActorLite.ClearAll();
+        _hudsVisible = true;
         ResetBattleStats();
 
         ResetPlayerForRestart();
@@ -987,6 +990,7 @@ public class MPRoomManager : MonoBehaviour
                 hud.SetLabel(string.Empty);
             }
             _actorHuds[actor] = hud;
+            hud.gameObject.SetActive(_hudsVisible);
         }
         else
         {
@@ -1026,6 +1030,18 @@ public class MPRoomManager : MonoBehaviour
             ReleaseHud(actor);
         }
         _actorHuds.Clear();
+    }
+
+    public void SetHudVisible(bool visible)
+    {
+        _hudsVisible = visible;
+        foreach (var kv in _actorHuds)
+        {
+            if (kv.Value != null)
+            {
+                kv.Value.gameObject.SetActive(visible);
+            }
+        }
     }
 
     private MPCamManager SpawnFallbackCamera()

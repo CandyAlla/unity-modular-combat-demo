@@ -20,6 +20,7 @@ public class UI_LoginPanel : UIBase
     #region Fields
     private int _selectedStageId = 1;
     private readonly List<Button> _spawnedStageButtons = new List<Button>();
+    private readonly List<UI_ChaptItem> _spawnedStageItems = new List<UI_ChaptItem>();
     #endregion
 
     #region Unity Lifecycle
@@ -38,7 +39,7 @@ public class UI_LoginPanel : UIBase
         SyncSelection();
         BuildStageList();
         UpdateDiagnostics();
-        UpdateEnterButtonState(false);
+        // UpdateEnterButtonState(false);
     }
 
     private void OnDestroy()
@@ -60,6 +61,7 @@ public class UI_LoginPanel : UIBase
             }
         }
         _spawnedStageButtons.Clear();
+        _spawnedStageItems.Clear();
     }
     #endregion
 
@@ -150,6 +152,7 @@ public class UI_LoginPanel : UIBase
             }
         }
         _spawnedStageButtons.Clear();
+        _spawnedStageItems.Clear();
 
         _stageItemTemplate.gameObject.SetActive(false);
 
@@ -157,18 +160,32 @@ public class UI_LoginPanel : UIBase
         {
             var btnObj = Instantiate(_stageItemTemplate, _stageListRoot);
             btnObj.gameObject.SetActive(true);
-            var label = btnObj.GetComponentInChildren<TMP_Text>();
-            if (label != null)
+            var item = btnObj.GetComponent<UI_ChaptItem>();
+            if (item != null)
             {
-                label.text = string.IsNullOrEmpty(entry.DisplayName) ? $"Stage {entry.StageId}" : entry.DisplayName;
+                item.SetStageId(entry.StageId);
+                item.SetSelected(false);
+                var labelText = string.IsNullOrEmpty(entry.DisplayName) ? $"Stage {entry.StageId}" : entry.DisplayName;
+                item.SetLabel(labelText);
+                _spawnedStageItems.Add(item);
+            }
+            else
+            {
+                Debug.LogWarning("[LoginUI] Stage item missing UI_ChaptItem component.");
             }
 
             var capturedId = entry.StageId;
             var capturedName = entry.DisplayName;
-            btnObj.onClick.AddListener(() => OnClickSelectStage(capturedId, capturedName));
+            btnObj.onClick.AddListener(() =>
+            {
+                OnClickSelectStage(capturedId, capturedName);
+                SetSelectedStageItem(capturedId);
+            });
 
             _spawnedStageButtons.Add(btnObj);
         }
+
+        SetSelectedStageItem(_selectedStageId);
     }
 
     private string ResolveStageName(int stageId)
@@ -199,6 +216,18 @@ public class UI_LoginPanel : UIBase
         if (_enterGameButton != null)
         {
             _enterGameButton.interactable = enabled;
+        }
+    }
+
+    private void SetSelectedStageItem(int stageId)
+    {
+        for (int i = 0; i < _spawnedStageItems.Count; i++)
+        {
+            var item = _spawnedStageItems[i];
+            if (item != null)
+            {
+                item.SetSelected(item.StageId == stageId);
+            }
         }
     }
     #endregion
