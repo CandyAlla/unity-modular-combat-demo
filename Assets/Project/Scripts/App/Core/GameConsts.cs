@@ -4,6 +4,7 @@ public static class GameConsts
     public const string MAP_GAMEENTRY = "Map_GameEntry";
     public const string MAP_LOGIN = "Map_Login";
     public const string MAP_BATTLESCENE = "Map_BattleScene";
+    public const string MAP_LOADING = "Map_Loading";
     public const string MAP_TESTSCENE = "Map_TestScene";
     #endregion
 

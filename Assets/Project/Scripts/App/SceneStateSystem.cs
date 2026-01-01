@@ -9,7 +9,8 @@ public enum SceneStateId
     GameEntry = 0,
     Login = 1,
     Battle = 2,
-    Test = 3,
+    Loading = 3,
+    Test = 4,
 }
 
 
@@ -61,16 +62,86 @@ public class SceneStateSystem
             return false;
         }
 
-        if (_currentManager != null)
+        if (target != SceneStateId.Loading)
         {
-            Debug.Log($"[SceneStateSystem] Leaving {_currentId}");
-            PoolManager.Inst?.DoBeforeLeavingScene();
-            _currentManager.DoBeforeLeaving();
+            return await PerformTransitionViaLoading(target, nextManager, timeoutMs, externalToken);
         }
 
-        // Clear global event bus to avoid stale scene references
-        EventBus.OnClearAllDicDELEvents();
+        return await PerformDirectTransition(target, nextManager, timeoutMs, externalToken);
+    }
+    #endregion
 
+    #region Private Methods
+    private async Task<bool> PerformTransitionViaLoading(SceneStateId target, ISceneManager nextManager, int timeoutMs, CancellationToken externalToken)
+    {
+        if (!_managers.TryGetValue(SceneStateId.Loading, out var loadingManager) || loadingManager == null)
+        {
+            Debug.LogWarning("[SceneStateSystem] Loading manager not registered. Falling back to direct load.");
+            return await PerformDirectTransition(target, nextManager, timeoutMs, externalToken);
+        }
+
+        _isTransitioning = true;
+        try
+        {
+            if (_currentManager != null)
+            {
+                Debug.Log($"[SceneStateSystem] Leaving {_currentId}");
+                PoolManager.Inst?.DoBeforeLeavingScene();
+                _currentManager.DoBeforeLeaving();
+            }
+
+            EventBus.OnClearAllDicDELEvents();
+
+            if (!await LoadSceneAndEnter(SceneStateId.Loading, loadingManager, timeoutMs, externalToken))
+            {
+                return false;
+            }
+
+            // Give the GC and Asset Unloader a small window to settle in the "empty" scene.
+            // This ensures a clear memory trough before the next heavy load starts.
+            await Task.Delay(100);
+
+            PoolManager.Inst?.DoBeforeLeavingScene();
+            loadingManager.DoBeforeLeaving();
+            EventBus.OnClearAllDicDELEvents();
+
+            if (!await LoadSceneAndEnter(target, nextManager, timeoutMs, externalToken))
+            {
+                return false;
+            }
+
+            return true;
+        }
+        finally
+        {
+            _isTransitioning = false;
+        }
+    }
+
+    private async Task<bool> PerformDirectTransition(SceneStateId target, ISceneManager nextManager, int timeoutMs, CancellationToken externalToken)
+    {
+        _isTransitioning = true;
+        try
+        {
+            if (_currentManager != null)
+            {
+                Debug.Log($"[SceneStateSystem] Leaving {_currentId}");
+                PoolManager.Inst?.DoBeforeLeavingScene();
+                _currentManager.DoBeforeLeaving();
+            }
+
+            EventBus.OnClearAllDicDELEvents();
+
+            return await LoadSceneAndEnter(target, nextManager, timeoutMs, externalToken);
+        }
+        finally
+        {
+            _isTransitioning = false;
+        }
+    }
+
+    private async Task<bool> LoadSceneAndEnter(SceneStateId target, ISceneManager manager, int timeoutMs, CancellationToken externalToken)
+    {
         var sceneName = ResolveSceneName(target);
         if (string.IsNullOrEmpty(sceneName))
         {
@@ -78,15 +149,12 @@ public class SceneStateSystem
             return false;
         }
 
-        _isTransitioning = true;
-
         Debug.Log($"[SceneStateSystem] Loading scene: {sceneName}");
 
         var op = SceneManager.LoadSceneAsync(sceneName);
         if (op == null)
         {
             Debug.LogError($"[SceneStateSystem] Failed to start loading scene: {sceneName}");
-            _isTransitioning = false;
             return false;
         }
 
@@ -106,37 +174,26 @@ public class SceneStateSystem
         catch (System.Exception ex)
         {
             Debug.LogError($"[SceneStateSystem] Exception during scene load {sceneName}: {ex}");
-            _isTransitioning = false;
             return false;
         }
 
         if (cts.IsCancellationRequested && !op.isDone)
         {
             Debug.LogError($"[SceneStateSystem] Scene load timeout/cancelled for {sceneName}");
-            _isTransitioning = false;
             return false;
         }
 
-        try
-        {
-            PoolManager.Inst?.DoBeforeEnteringScene(sceneName);
+        PoolManager.Inst?.DoBeforeEnteringScene(sceneName);
 
-            _currentId = target;
-            _currentManager = nextManager;
-            _currentManager.DoBeforeEntering();
-            _currentManager.DoEntered();
+        _currentId = target;
+        _currentManager = manager;
+        _currentManager.DoBeforeEntering();
+        _currentManager.DoEntered();
 
-            Debug.Log($"[SceneStateSystem] Entered state: {_currentId}");
-            return true;
-        }
-        finally
-        {
-            _isTransitioning = false;
-        }
+        Debug.Log($"[SceneStateSystem] Entered state: {_currentId}");
+        return true;
     }
-    #endregion
 
-    #region Private Methods
     private string ResolveSceneName(SceneStateId target)
     {
         switch (target)
@@ -147,6 +204,8 @@ public class SceneStateSystem
                 return GameConsts.MAP_LOGIN;
             case SceneStateId.Battle:
                 return GameConsts.MAP_BATTLESCENE;
+            case SceneStateId.Loading:
+                return GameConsts.MAP_LOADING;
             case SceneStateId.Test:
                 return GameConsts.MAP_TESTSCENE;
             default:
