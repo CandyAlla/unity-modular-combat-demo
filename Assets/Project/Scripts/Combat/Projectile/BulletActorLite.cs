@@ -16,7 +16,7 @@ public class BulletActorLite : MonoBehaviour
     private float _lifeTime;
     private float _maxLifeTime = 3f;
     private float _damage = 10f;
-    private string _poolKey;
+    private PoolKey _poolKey;
     private bool _paused;
     private bool _recycling;
     private Vector3 _previousPosition;
@@ -190,7 +190,7 @@ public class BulletActorLite : MonoBehaviour
 
         _recycling = true;
 
-        if (PoolManager.Inst != null && !string.IsNullOrEmpty(_poolKey))
+        if (PoolManager.Inst != null && _poolKey != PoolKey.None)
         {
             PoolManager.DespawnItemToPool(_poolKey, this);
         }
@@ -266,5 +266,5 @@ public struct BulletSpawnContext
     public float Speed;
     public float MaxLifeTime;
     public float Damage;
-    public string PoolKey;
+    public PoolKey PoolKey;
 }

@@ -10,7 +10,7 @@ public class PoolManager : MonoBehaviour
     [Serializable]
     public class PoolConfig
     {
-        public string Key;
+        public PoolKey Key;
         public GameObject Prefab;
         public int PreloadCount = 0;
     }
@@ -44,7 +44,7 @@ public class PoolManager : MonoBehaviour
         manager.InitializeRoot(rootGo);
     }
 
-    public static void InitPoolItem<T>(string key, GameObject prefab, int preloadCount = 0) where T : Component
+    public static void InitPoolItem<T>(PoolKey key, GameObject prefab, int preloadCount = 0) where T : Component
     {
         if (Inst == null)
         {
@@ -60,7 +60,7 @@ public class PoolManager : MonoBehaviour
         Inst._poolModelCtrl.InitPoolItem<T>(key, prefab, preloadCount);
     }
 
-    public static T SpawnItemFromPool<T>(string key, Vector3 position, Quaternion rotation) where T : Component
+    public static T SpawnItemFromPool<T>(PoolKey key, Vector3 position, Quaternion rotation) where T : Component
     {
         if (Inst == null)
         {
@@ -76,7 +76,7 @@ public class PoolManager : MonoBehaviour
         return Inst._poolModelCtrl.SpawnItemFromPool<T>(key, position, rotation, Inst._runtimeActorsRoot);
     }
 
-    public static void DespawnItemToPool<T>(string key, T instance) where T : Component
+    public static void DespawnItemToPool<T>(PoolKey key, T instance) where T : Component
     {
         if (Inst == null || instance == null)
         {
@@ -129,7 +129,7 @@ public class PoolManager : MonoBehaviour
 
         foreach (var config in _poolConfigs)
         {
-            if (config != null && !string.IsNullOrEmpty(config.Key) && config.Prefab != null)
+            if (config != null && config.Key != PoolKey.None && config.Prefab != null)
             {
                 _poolModelCtrl.InitPoolItem<Component>(config.Key, config.Prefab, config.PreloadCount);
             }

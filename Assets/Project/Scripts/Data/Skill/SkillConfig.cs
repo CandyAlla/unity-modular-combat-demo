@@ -32,6 +32,7 @@ public class SkillConfig : ScriptableObject
     public float ProjectileSpeed = 10f;
     public float ProjectileLifeTime = 3f;
     public float ProjectileDamage = 10f;
+    public PoolKey PoolKey; // PoolKey for projectiles
 
     [Header("Type")]
     public SkillType Category = SkillType.Basic;

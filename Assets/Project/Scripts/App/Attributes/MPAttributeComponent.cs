@@ -60,7 +60,7 @@ public class MPAttributeComponent
     // Called by BuffSystem to apply modifications
     public void UpdateBuffModifiers(AttributeType type, float additive, float multiplier)
     {
-         if (!_attributes.TryGetValue(type, out var attr))
+        if (!_attributes.TryGetValue(type, out var attr))
         {
             return;
         }

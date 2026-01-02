@@ -13,7 +13,7 @@ public class MPSkillActorLite : MonoBehaviour
         [HideInInspector] public SkillRuntimeController.SkillPhase LastPhase = SkillRuntimeController.SkillPhase.Idle;
         [HideInInspector] public Vector3 LastDirection = Vector3.forward;
         [HideInInspector] public Vector3 LastTarget = Vector3.zero;
-        [HideInInspector] public string PoolKey;
+        [HideInInspector] public PoolKey PoolKey;
     }
 
     #region Inspector
@@ -22,7 +22,6 @@ public class MPSkillActorLite : MonoBehaviour
     [SerializeField] private SkillSlot _activeSkill;
     [SerializeField] private SkillSlot _secondaryActiveSkill;
     [Header("Default Skill Paths (Resources)")]
-    [Header("Default Skill Paths (Resources)")]
     [SerializeField] private string _primarySkillResourcePath = GameConsts.PATH_CONFIG_SKILL_PRIMARY;
     [SerializeField] private string _activeSkillResourcePath = GameConsts.PATH_CONFIG_SKILL_ACTIVE;
     [SerializeField] private string _secondarySkillResourcePath = GameConsts.PATH_CONFIG_SKILL_SECONDARY;
@@ -30,7 +29,7 @@ public class MPSkillActorLite : MonoBehaviour
 
     #region Fields
     private GameObject _owner;
-    private static readonly HashSet<string> _initializedPoolKeys = new HashSet<string>();
+    private static readonly HashSet<PoolKey> _initializedPoolKeys = new HashSet<PoolKey>();
     #endregion
 
     #region Events
@@ -222,7 +221,7 @@ public class MPSkillActorLite : MonoBehaviour
         var spawnPos = _owner != null ? _owner.transform.position : slot.LastTarget;
         var direction = slot.LastDirection.sqrMagnitude > 0.001f ? slot.LastDirection.normalized : Vector3.forward;
 
-        var poolKey = string.IsNullOrEmpty(slot.PoolKey) ? $"Proj_{slot.Config.ProjectilePrefab.name}" : slot.PoolKey;
+        var poolKey = (slot.Config.PoolKey != PoolKey.None) ? slot.Config.PoolKey : PoolKey.Projectile_General;
         slot.PoolKey = poolKey;
 
         if (PoolManager.Inst != null && !_initializedPoolKeys.Contains(poolKey))

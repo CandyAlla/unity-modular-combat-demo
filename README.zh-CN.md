@@ -25,7 +25,7 @@
 ```text
 Assets/Project/Scripts
 ├── App
-│   ├── Actors           # Actor 基类与 NPC AI
+│   ├── Actors           # Actor 基类、Motion 组件与 NPC AI
 │   ├── Attributes       # 属性系统
 │   ├── Buff             # Buff 叠加与效果计算
 │   ├── Camera           # 相机跟随
@@ -33,7 +33,8 @@ Assets/Project/Scripts
 │   ├── Debug            # 调试面板与验证脚本
 │   ├── UI               # UI 基类与管理器
 │   ├── PoolManager.cs   # 对象池入口
-│   └── SceneStateSystem.cs
+│   ├── SceneStateSystem.cs
+│   └── MPMotionComponent.cs # 统一移动行为控制
 ├── Combat               # 战斗相关（投射物/反馈）
 ├── Data                 # 配置数据结构（关卡/技能）
 ├── Player               # 玩家控制与技能触发
@@ -95,12 +96,14 @@ Assets/Project/Resources/Configs/Stage_01_Easy.asset
 Assets/Project/Resources/Configs/Stage_02_Rush.asset
 ```
 
-## 7. 战斗与技能系统
+## 7. 战斗与实体架构 (Modular Design)
 
-### 7.1 Actor 基础
-- `MPCharacterSoulActorBase` 统一处理 HP、受击、死亡事件。
-- `MPSoulActor`：玩家角色
-- `MPNpcSoulActor`：怪物 AI（追击/攻击）
+### 7.1 Actor 模块化设计
+- **`MPCharacterSoulActorBase`**: 统一处理核心生命周期、HP、受击与死亡事件。
+- **`MPMotionComponent`**: 剥离移动逻辑，统一管理 Transform 位移与 NavMesh 寻路。
+- **`MPAttributeComponent`**: 集中式的数值计算中心。
+- **`BuffLayerMgr`**: 负责 Buff 的叠加、刷新与属性动态修正。
+- **`MPSkillActorLite`**: 管理技能释放状态机与冷却。
 
 ### 7.2 Buff 系统
 - `BuffLayerMgr` 管理 Buff 叠加、刷新与移除
@@ -135,21 +138,7 @@ UI 由 `UIManager` 统一管理：
 - `BuffSystemVerification`：用于验证 Buff 叠加逻辑
 - 测试入口：`Map_Login` 的 Test 按钮进入 `Map_TestScene`
 
-## 10. 性能优化（模板）
-
-### 10.1 问题描述（待补充）
-- 同屏怪物数量：300+
-- 初始帧率/GC/CPU 开销：待补充
-
-### 10.2 优化手段
-- 对象池：`PoolManager` 统一管理 NPC/子弹/飘字/血条
-- 集中 Tick：由 `MPRoomManager` 统一驱动 Actor 更新
-
-### 10.3 效果对比（待补充）
-- 帧率提升：待补充
-- GC 分配：待补充
-
-## 11. 后续计划
+## 10. 后续计划
 
 - 运行时 Debug 面板快捷键
 - 技能表现与特效增强

@@ -105,10 +105,7 @@ public class MPSoulActor : MPCharacterSoulActorBase
         if (inputDir.sqrMagnitude > 0.001f)
         {
             var worldDir = inputDir.normalized;
-
-            var currentSpeed = _attributeComponent != null ? _attributeComponent.GetValue(AttributeType.MoveSpeed) : _moveSpeed;
-            transform.position += worldDir * (currentSpeed * deltaTime);
-            transform.rotation = Quaternion.LookRotation(worldDir, Vector3.up);
+            _motionComponent.MoveDirectly(worldDir, deltaTime);
         }
     }
 

@@ -16,6 +16,7 @@ public class NpcAttributesConfig : ScriptableObject
         public float AttackInterval = 1.0f;
         public float AttackRange = 1.2f;
         public float SearchRange = 10.0f;
+        public PoolKey PoolKey;
         public GameObject Prefab;
     }
 

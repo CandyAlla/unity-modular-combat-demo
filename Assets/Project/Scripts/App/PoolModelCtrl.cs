@@ -119,7 +119,7 @@ public class PoolModelCtrl : MonoBehaviour
     #endregion
 
     #region Fields
-    private readonly Dictionary<string, ObjectPool> _pools = new Dictionary<string, ObjectPool>();
+    private readonly Dictionary<PoolKey, ObjectPool> _pools = new Dictionary<PoolKey, ObjectPool>();
     private Transform _runtimeActorsRoot;
     #endregion
 
@@ -129,9 +129,9 @@ public class PoolModelCtrl : MonoBehaviour
         _runtimeActorsRoot = runtimeActorsRoot;
     }
 
-    public void InitPoolItem<T>(string key, GameObject prefab, int preloadCount) where T : Component
+    public void InitPoolItem<T>(PoolKey key, GameObject prefab, int preloadCount) where T : Component
     {
-        if (string.IsNullOrEmpty(key) || prefab == null)
+        if (key == PoolKey.None || prefab == null)
         {
             Debug.LogWarning("[PoolModelCtrl] InitPoolItem missing key or prefab.");
             return;
@@ -154,7 +154,7 @@ public class PoolModelCtrl : MonoBehaviour
         _pools.Add(key, pool);
     }
 
-    public T SpawnItemFromPool<T>(string key, Vector3 position, Quaternion rotation, Transform parentOverride = null) where T : Component
+    public T SpawnItemFromPool<T>(PoolKey key, Vector3 position, Quaternion rotation, Transform parentOverride = null) where T : Component
     {
         if (!_pools.TryGetValue(key, out var pool))
         {
@@ -166,7 +166,7 @@ public class PoolModelCtrl : MonoBehaviour
         return obj != null ? obj.GetComponent<T>() : null;
     }
 
-    public void DespawnItemToPool(string key, GameObject instance)
+    public void DespawnItemToPool(PoolKey key, GameObject instance)
     {
         if (!_pools.TryGetValue(key, out var pool))
         {

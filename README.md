@@ -27,7 +27,7 @@ Key points:
 ```text
 Assets/Project/Scripts
 ├── App
-│   ├── Actors           # Actor base and NPC AI
+│   ├── Actors           # Actor base, Motion and NPC AI
 │   ├── Attributes       # Attribute system
 │   ├── Buff             # Buff stacking and effects
 │   ├── Camera           # Camera follow
@@ -35,7 +35,8 @@ Assets/Project/Scripts
 │   ├── Debug            # Debug panel and verification scripts
 │   ├── UI               # UI base and manager
 │   ├── PoolManager.cs   # Object pooling entry
-│   └── SceneStateSystem.cs
+│   ├── SceneStateSystem.cs
+│   └── MPMotionComponent.cs # Centralized movement logic
 ├── Combat               # Combat logic (projectiles/feedback)
 ├── Data                 # Config data (level/skill)
 ├── Player               # Player control and skill triggers
@@ -97,12 +98,14 @@ Assets/Project/Resources/Configs/Stage_01_Easy.asset
 Assets/Project/Resources/Configs/Stage_02_Rush.asset
 ```
 
-## 7. Combat & Skill System
+## 7. Combat & Actor Architecture
 
-### 7.1 Actors
-- `MPCharacterSoulActorBase` handles HP, damage, death events.
-- `MPSoulActor`: player character.
-- `MPNpcSoulActor`: NPC AI (chase/attack).
+### 7.1 Actors (Modular Design)
+- **`MPCharacterSoulActorBase`**: Core lifecycle and damage flow.
+- **`MPMotionComponent`**: Encapsulates both direct movement (Transform) and pathfinding (NavMesh).
+- **`MPAttributeComponent`**: Centralized numeric stat management.
+- **`BuffLayerMgr`**: Manages effect stacking and runtime attribute modification.
+- **`MPSkillActorLite`**: Handles skill casting state machines and CDs.
 
 ### 7.2 Buff System
 - `BuffLayerMgr` handles stacking/refresh/expiry.
@@ -137,21 +140,7 @@ UI is managed by `UIManager`:
 - `BuffSystemVerification`: validate buff stacking logic
 - Test entry: `Map_Login` "Test" button -> `Map_TestScene`
 
-## 10. Performance (Template)
-
-### 10.1 Problem (to fill)
-- On-screen enemies: 300+
-- Initial FPS/GC/CPU cost: TBD
-
-### 10.2 Optimization
-- Object pooling: `PoolManager` for NPCs/bullets/floating text/HP bars
-- Centralized tick: `MPRoomManager` updates actors
-
-### 10.3 Result (to fill)
-- FPS improvement: TBD
-- GC allocation: TBD
-
-## 11. TODO
+## 10. TODO
 
 - Runtime debug panel hotkey
 - Better skill VFX

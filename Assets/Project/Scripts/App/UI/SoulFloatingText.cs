@@ -1,4 +1,4 @@
-using TMPro;
+using  TMPro;
 using UnityEngine;
 
 public class SoulFloatingText : MonoBehaviour
@@ -9,7 +9,7 @@ public class SoulFloatingText : MonoBehaviour
     private FloatTextInfo _info;
     private float _timer;
     private Vector3 _startPos;
-    private string _poolKey = "UI_FloatText";
+    private PoolKey _poolKey = PoolKey.UI_FloatText;
 
     public void Init(FloatTextInfo info)
     {

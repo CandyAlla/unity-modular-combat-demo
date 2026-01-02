@@ -30,6 +30,7 @@ public class MPCharacterSoulActorBase : MonoBehaviour
     private bool _initialized;
     protected BuffLayerMgr _buffLayerMgr;
     protected MPAttributeComponent _attributeComponent;
+    protected MPMotionComponent _motionComponent;
     [Header("UI Settings")]
     [SerializeField] private float _healthBarHeight = 2.0f;
     [Header("Hurt Feedback")]
@@ -39,7 +40,6 @@ public class MPCharacterSoulActorBase : MonoBehaviour
     [SerializeField] private float _hurtStunDuration = 0.3f;
     private Color _hurtOriginalColor = Color.white;
     private Coroutine _hurtFlashCo;
-    private NavMeshAgent _hurtAgent;
     private bool _hurtPaused;
     #endregion
 
@@ -53,7 +53,7 @@ public class MPCharacterSoulActorBase : MonoBehaviour
             _hurtRenderer = GetComponentInChildren<Renderer>();
         }
 
-        _hurtAgent = GetComponent<NavMeshAgent>();
+// NavMeshAgent is managed by MPMotionComponent
 
         if (_hurtRenderer != null && _hurtRenderer.sharedMaterial != null)
         {
@@ -182,6 +182,16 @@ public class MPCharacterSoulActorBase : MonoBehaviour
                 ShowFloatTextPublic(0, FloatTextType.Buff, cfg.BuffName);
             };
         }
+
+        if (_motionComponent == null)
+        {
+            _motionComponent = gameObject.GetComponent<MPMotionComponent>();
+            if (_motionComponent == null)
+            {
+                _motionComponent = gameObject.AddComponent<MPMotionComponent>();
+            }
+            _motionComponent.Initialize(_isPlayer, _attributeComponent);
+        }
     }
 
     protected void ResetHealth()
@@ -197,6 +207,7 @@ public class MPCharacterSoulActorBase : MonoBehaviour
         ResetHealth();
         _buffLayerMgr?.ClearAll();
         ResetHurtFeedback();
+        IsHurtStunned = false;
     }
 
     public void TryAddBuffStack(BuffType type)
@@ -221,21 +232,30 @@ public class MPCharacterSoulActorBase : MonoBehaviour
         var offset = new Vector3(Random.Range(-0.5f, 0.5f), 2.0f, Random.Range(-0.5f, 0.5f));
         var pos = transform.position + offset;
 
-        var textObj = PoolManager.SpawnItemFromPool<SoulFloatingText>("UI_FloatText", pos, Quaternion.identity);
-        if (textObj != null)
+        // Use the new throttled manager
+        if (SoulFloatTextManager.Instance != null)
         {
-            var defaults = FloatTextConfigProvider.GetDefaults(type);
-            var info = new FloatTextInfo
+            SoulFloatTextManager.Instance.EnqueueRequest(value, type, pos, customText);
+        }
+        else
+        {
+            // Fallback if manager missing
+            var textObj = PoolManager.SpawnItemFromPool<SoulFloatingText>(PoolKey.UI_FloatText, pos, Quaternion.identity);
+            if (textObj != null)
             {
-                Type = type,
-                Value = value,
-                CustomText = customText,
-                Position = pos,
-                Duration = defaults.Duration,
-                MoveSpeed = defaults.MoveSpeed,
-                Color = defaults.Color
-            };
-            textObj.Init(info);
+                var defaults = FloatTextConfigProvider.GetDefaults(type);
+                var info = new FloatTextInfo
+                {
+                    Type = type,
+                    Value = value,
+                    CustomText = customText,
+                    Position = pos,
+                    Duration = defaults.Duration,
+                    MoveSpeed = defaults.MoveSpeed,
+                    Color = defaults.Color
+                };
+                textObj.Init(info);
+            }
         }
     }
 
@@ -324,7 +344,7 @@ public class MPCharacterSoulActorBase : MonoBehaviour
             return;
         }
 
-        if (!_isPlayer && _hurtAgent != null)
+        if (!_isPlayer && _motionComponent != null && _motionComponent.IsOnNavMesh)
         {
             StartCoroutine(HurtStunRoutine());
         }
@@ -335,14 +355,14 @@ public class MPCharacterSoulActorBase : MonoBehaviour
     private IEnumerator HurtStunRoutine()
     {
         IsHurtStunned = true;
-        var prevStopped = _hurtAgent.isStopped;
-        _hurtAgent.isStopped = true;
+        
+        if (_motionComponent != null) _motionComponent.Stop();
         
         yield return new WaitForSeconds(_hurtStunDuration);
         
-        if (!_hurtPaused)
+        if (!_hurtPaused && _motionComponent != null)
         {
-            _hurtAgent.isStopped = prevStopped;
+            _motionComponent.Resume();
         }
         IsHurtStunned = false;
     }

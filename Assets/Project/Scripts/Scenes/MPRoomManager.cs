@@ -6,6 +6,7 @@ using UnityEngine;
 public class MPRoomManager : MonoBehaviour
 {
     #region Types
+
     public enum RoomState
     {
         NotStarted,
@@ -41,50 +42,60 @@ public class MPRoomManager : MonoBehaviour
             };
         }
     }
+
     #endregion
 
     #region Inspector
+
     [SerializeField] private int _stageId = 1;
     [SerializeField] private GameObject _dummyEnemyPrefab;
     [SerializeField] private Transform[] _spawnPoints;
     [SerializeField] private Transform _runtimeActorsRoot;
-    [SerializeField] private string _enemyPoolKey = "Enemy_Dummy";
+    [SerializeField] private PoolKey _defaultEnemyPoolKey = PoolKey.Enemy_Dummy;
     [SerializeField] private MPCamManager _camManager;
-    [Header("Fallback Prefabs")]
-    [SerializeField] private GameObject _playerPrefab;
+
+    [Header("Fallback Prefabs")] [SerializeField]
+    private GameObject _playerPrefab;
+
     [SerializeField] private GameObject _floatTextPrefab;
     [SerializeField] private GameObject _playerHudPrefab;
     [SerializeField] private Transform _hudCanvasRoot;
     [SerializeField] private bool _disableWaveSpawningInThisScene = false;
     [SerializeField] private MPSoulActor _localPlayer;
+
     #endregion
 
     #region Fields
+
     private RoomState _state = RoomState.NotStarted;
     private MainChapterInfo _chapterInfo;
     private readonly Dictionary<int, List<NPCSpawnData>> _secondToWaves = new Dictionary<int, List<NPCSpawnData>>();
     private readonly Dictionary<int, GameObject> _npcPrefabLookup = new Dictionary<int, GameObject>();
-    private readonly Dictionary<int, string> _npcPoolKeyLookup = new Dictionary<int, string>();
+    private readonly Dictionary<int, PoolKey> _npcPoolKeyLookup = new Dictionary<int, PoolKey>();
     private int _aliveEnemyCount;
     private bool _isPaused;
     private readonly List<MPCharacterSoulActorBase> _actors = new List<MPCharacterSoulActorBase>();
     private readonly List<MPNpcSoulActor> _npcs = new List<MPNpcSoulActor>();
-    private readonly Dictionary<MPCharacterSoulActorBase, PlayerHUD> _actorHuds = new Dictionary<MPCharacterSoulActorBase, PlayerHUD>();
+
+    private readonly Dictionary<MPCharacterSoulActorBase, PlayerHUD> _actorHuds =
+        new Dictionary<MPCharacterSoulActorBase, PlayerHUD>();
+
     private int _npcInstanceCounter = 0;
     private Vector3 _playerSpawnPosition;
     private Quaternion _playerSpawnRotation;
     private bool _hudsVisible = true;
-    [Header("Level Timing")]
-    private LevelStatus _levelStatus = LevelStatus.Idle;
+    [Header("Level Timing")] private LevelStatus _levelStatus = LevelStatus.Idle;
     private bool _isWin;
     private float _currentTime;
     private int _currentSecond;
     private int _lastSecond = -1;
-    
+
     private BattleStats _battleStats = new BattleStats();
+
     #endregion
 
     #region Properties
+
     public static MPRoomManager Inst { get; private set; }
     public RoomState State => _state;
     public int AliveEnemyCount => _aliveEnemyCount;
@@ -95,18 +106,19 @@ public class MPRoomManager : MonoBehaviour
     public MPSoulActor LocalPlayer => _localPlayer;
 
     #region Debug API
+
     public void DebugSpawnEnemy(int npcId, int count, bool disableMovement = false)
     {
         var prefab = ResolveNpcPrefab(npcId);
         var poolKey = GetPoolKeyForNpc(npcId);
         var npcAttrs = DataCtrl.Instance.GetNpcAttributes(npcId);
-        
+
         Debug.Log($"[MPRoomManager] Debug Spawn: {count}x NPC {npcId}");
         for (int i = 0; i < count; i++)
         {
             // Spawn around player or origin
             var origin = _localPlayer != null ? _localPlayer.transform.position : Vector3.zero;
-            var pos = ResolveSpawnPositionForSpawn(origin, null, i); 
+            var pos = ResolveSpawnPositionForSpawn(origin, null, i);
             var npc = SpawnEnemy(npcId, npcAttrs, prefab, poolKey, pos);
             if (npc != null && disableMovement)
             {
@@ -133,6 +145,7 @@ public class MPRoomManager : MonoBehaviour
                 npc.TryAddBuffStack(type);
             }
         }
+
         Debug.Log($"[MPRoomManager] Debug Buff All NPCs: {type}");
     }
 
@@ -141,10 +154,69 @@ public class MPRoomManager : MonoBehaviour
         ResetPlayerForRestart();
         Debug.Log("[MPRoomManager] Debug Reset Hero");
     }
+
     #endregion
+
+    #endregion
+    
+    #region Battle Stats
+
+    private void ResetBattleStats()
+    {
+        _battleStats = new BattleStats();
+    }
+
+    private BattleResultData BuildBattleResult(bool isWin)
+    {
+        return new BattleResultData
+        {
+            IsWin = isWin,
+            DurationSeconds = _currentTime,
+            Stats = _battleStats.Clone()
+        };
+    }
+
+    private void RegisterEnemySpawn()
+    {
+        if (_battleStats != null)
+        {
+            _battleStats.TotalEnemySpawns++;
+        }
+    }
+
+    private void RegisterEnemyKill()
+    {
+        if (_battleStats != null)
+        {
+            _battleStats.TotalEnemyKills++;
+        }
+    }
+
+    public void RegisterPlayerDamageDealt(int amount)
+    {
+        if (_battleStats != null)
+        {
+            _battleStats.PlayerDamageDealt += Mathf.Max(0, amount);
+        }
+    }
+
+    public void RegisterPlayerDamageTaken(int amount)
+    {
+        if (_battleStats != null)
+        {
+            _battleStats.PlayerDamageTaken += Mathf.Max(0, amount);
+        }
+    }
+
+    public BattleStats GetBattleStatsSnapshot()
+    {
+        return _battleStats != null ? _battleStats.Clone() : new BattleStats();
+    }
+
     #endregion
 
     #region Unity Lifecycle
+
     private void Awake()
     {
         if (Inst != null && Inst != this)
@@ -180,9 +252,11 @@ public class MPRoomManager : MonoBehaviour
         EventBus.OnDetach<PlayerDeadEvent>(OnPlayerDeadEvent);
         EventBus.OnDetach<EnemyDeadEvent>(OnEnemyDeadEvent);
     }
+
     #endregion
 
     #region Public Methods
+
     public void InitializeStage(int stageId)
     {
         _stageId = stageId;
@@ -221,6 +295,7 @@ public class MPRoomManager : MonoBehaviour
                     list = new List<NPCSpawnData>();
                     _secondToWaves[wave.Time] = list;
                 }
+
                 list.Add(wave);
                 npcIds.Add(wave.NpcId);
             }
@@ -248,13 +323,23 @@ public class MPRoomManager : MonoBehaviour
                 Debug.LogWarning($"[MPRoomManager] No prefab found for NPC {npcId}; spawns will be skipped.");
             }
         }
-        
-        PoolManager.InitPoolItem<SoulFloatingText>("UI_FloatText", _floatTextPrefab, 10);
-        if (_playerHudPrefab != null)
+
+        if (PoolManager.Inst != null)
         {
-            PoolManager.InitPoolItem<PlayerHUD>("UI_PlayerHUD", _playerHudPrefab, 10);
+            PoolManager.InitPoolItem<SoulFloatingText>(PoolKey.UI_FloatText, _floatTextPrefab, 10);
+
+            // Ensure SoulFloatTextManager exists for throttling
+            if (gameObject.GetComponent<SoulFloatTextManager>() == null)
+            {
+                gameObject.AddComponent<SoulFloatTextManager>();
+            }
+
+            if (_playerHudPrefab != null)
+            {
+                PoolManager.InitPoolItem<PlayerHUD>(PoolKey.UI_PlayerHUD, _playerHudPrefab, 10);
+            }
         }
-        
+
 
         _state = RoomState.NotStarted;
         _aliveEnemyCount = 0;
@@ -305,7 +390,8 @@ public class MPRoomManager : MonoBehaviour
         }
 
         var durationLog = _chapterInfo.Duration;
-        Debug.Log($"[MPRoomManager] Initialized stage {_stageId} with duration {durationLog}s and {_secondToWaves.Count} wave times.");
+        Debug.Log(
+            $"[MPRoomManager] Initialized stage {_stageId} with duration {durationLog}s and {_secondToWaves.Count} wave times.");
     }
 
     public void StartBattle()
@@ -425,6 +511,7 @@ public class MPRoomManager : MonoBehaviour
         {
             return float.PositiveInfinity;
         }
+
         return _chapterInfo != null ? _chapterInfo.Duration : 0f;
     }
 
@@ -519,6 +606,7 @@ public class MPRoomManager : MonoBehaviour
                     list = new List<NPCSpawnData>();
                     _secondToWaves[wave.Time] = list;
                 }
+
                 list.Add(wave);
             }
         }
@@ -589,9 +677,11 @@ public class MPRoomManager : MonoBehaviour
             }
         }
     }
+
     #endregion
 
     #region Unity Lifecycle Updates
+
     private void Update()
     {
         if (_state != RoomState.Running || _isPaused || _levelStatus != LevelStatus.Running)
@@ -603,9 +693,11 @@ public class MPRoomManager : MonoBehaviour
         TickLevel(deltaTime);
         TickActors(deltaTime);
     }
+
     #endregion
 
     #region Private Methods
+
     private void TickLevel(float deltaTime)
     {
         _currentTime += deltaTime;
@@ -623,7 +715,7 @@ public class MPRoomManager : MonoBehaviour
         OnLevelSecondTick?.Invoke(second);
         OnSecondTick(second);
 
-        if (_levelStatus == LevelStatus.Running &&  _currentTime >= GetCurrentStageDuration())
+        if (_levelStatus == LevelStatus.Running && _currentTime >= GetCurrentStageDuration())
         {
             var playerAlive = _localPlayer != null && !_localPlayer.IsDead;
             if (playerAlive)
@@ -684,12 +776,13 @@ public class MPRoomManager : MonoBehaviour
         var basePos = ResolveSpawnPosition(wave);
         var prefab = ResolveNpcPrefab(wave);
         var poolKey = ResolvePoolKey(wave);
-        Debug.Log($"[MPRoomManager] Second {second}: spawn {wave.NpcCount}x NPC {wave.NpcId} (SpawnPointIndex {wave.SpawnPointIndex}, BasePos {basePos}). Prefab={prefab?.name ?? "None"} PoolKey={poolKey}");
+        Debug.Log(
+            $"[MPRoomManager] Second {second}: spawn {wave.NpcCount}x NPC {wave.NpcId} (SpawnPointIndex {wave.SpawnPointIndex}, BasePos {basePos}). Prefab={prefab?.name ?? "None"} PoolKey={poolKey}");
 
         SpawnWave(wave, prefab, poolKey, basePos);
     }
 
-    private void SpawnWave(NPCSpawnData wave, GameObject prefab, string poolKey, Vector3 basePos)
+    private void SpawnWave(NPCSpawnData wave, GameObject prefab, PoolKey poolKey, Vector3 basePos)
     {
         if (prefab == null || wave == null)
         {
@@ -763,12 +856,15 @@ public class MPRoomManager : MonoBehaviour
         return position + offset;
     }
 
-    private MPNpcSoulActor SpawnEnemy(int npcId, NpcAttributesConfig.NpcAttributesEntry attrs, GameObject prefab, string poolKey, Vector3 position)
+    private MPNpcSoulActor SpawnEnemy(int npcId, NpcAttributesConfig.NpcAttributesEntry attrs, GameObject prefab,
+        PoolKey poolKey, Vector3 position)
     {
         GameObject enemy = null;
         if (PoolManager.Inst != null)
         {
-            var parent = PoolManager.Inst.RuntimeActorsRoot != null ? PoolManager.Inst.RuntimeActorsRoot : _runtimeActorsRoot;
+            var parent = PoolManager.Inst.RuntimeActorsRoot != null
+                ? PoolManager.Inst.RuntimeActorsRoot
+                : _runtimeActorsRoot;
             enemy = PoolManager.SpawnItemFromPool<MPNpcSoulActor>(poolKey, position, Quaternion.identity)?.gameObject;
             if (enemy != null && parent != null && enemy.transform.parent != parent)
             {
@@ -868,24 +964,22 @@ public class MPRoomManager : MonoBehaviour
         return _dummyEnemyPrefab;
     }
 
-    private string ResolvePoolKey(NPCSpawnData wave)
+    private PoolKey ResolvePoolKey(NPCSpawnData wave)
     {
-        if (wave == null)
-        {
-            return _enemyPoolKey;
-        }
-
+        if (wave == null) return PoolKey.None;
         return GetPoolKeyForNpc(wave.NpcId);
     }
 
-    private string GetPoolKeyForNpc(int npcId)
+    private PoolKey GetPoolKeyForNpc(int npcId)
     {
         if (_npcPoolKeyLookup.TryGetValue(npcId, out var key))
         {
             return key;
         }
 
-        var resolved = string.IsNullOrEmpty(_enemyPoolKey) ? $"Enemy_{npcId}" : $"{_enemyPoolKey}_{npcId}";
+        var attrs = DataCtrl.Instance.GetNpcAttributes(npcId);
+        var resolved = (attrs != null && attrs.PoolKey != PoolKey.None) ? attrs.PoolKey : _defaultEnemyPoolKey;
+
         _npcPoolKeyLookup[npcId] = resolved;
         return resolved;
     }
@@ -910,9 +1004,11 @@ public class MPRoomManager : MonoBehaviour
             {
                 ReleaseHud(npc);
                 var poolKey = npc.GetPoolKey();
-                PoolManager.DespawnItemToPool(string.IsNullOrEmpty(poolKey) ? _enemyPoolKey : poolKey, npc);
+                var finalKey = (poolKey == PoolKey.None) ? _defaultEnemyPoolKey : poolKey;
+                PoolManager.DespawnItemToPool(finalKey, npc);
             }
         }
+
         _npcs.Clear();
     }
 
@@ -950,22 +1046,23 @@ public class MPRoomManager : MonoBehaviour
 
         if (parent == null)
         {
-             // Fallback: try to find a canvas if none assigned
-             var cv = FindObjectOfType<Canvas>();
-             if (cv == null)
-             {
-                 var all = Resources.FindObjectsOfTypeAll<Canvas>();
-                 if (all != null && all.Length > 0)
-                 {
-                     cv = all[0];
-                 }
-             }
-             if (cv != null) parent = cv.transform;
+            // Fallback: try to find a canvas if none assigned
+            var cv = FindObjectOfType<Canvas>();
+            if (cv == null)
+            {
+                var all = Resources.FindObjectsOfTypeAll<Canvas>();
+                if (all != null && all.Length > 0)
+                {
+                    cv = all[0];
+                }
+            }
+
+            if (cv != null) parent = cv.transform;
         }
 
         if (PoolManager.Inst != null)
         {
-            hud = PoolManager.SpawnItemFromPool<PlayerHUD>("UI_PlayerHUD", spawnPos, Quaternion.identity);
+            hud = PoolManager.SpawnItemFromPool<PlayerHUD>(PoolKey.UI_PlayerHUD, spawnPos, Quaternion.identity);
             if (hud != null && parent != null && hud.transform.parent != parent)
             {
                 hud.transform.SetParent(parent, false); // false = keep local scale, important for UI
@@ -989,12 +1086,14 @@ public class MPRoomManager : MonoBehaviour
             {
                 hud.SetLabel(string.Empty);
             }
+
             _actorHuds[actor] = hud;
             hud.gameObject.SetActive(_hudsVisible);
         }
         else
         {
-            Debug.LogWarning("[MPRoomManager] Failed to obtain PlayerHUD instance. Ensure canvas and pool are set.");
+            Debug.LogWarning(
+                "[MPRoomManager] Failed to obtain PlayerHUD instance. Ensure canvas and pool are set.");
         }
     }
 
@@ -1012,7 +1111,7 @@ public class MPRoomManager : MonoBehaviour
             {
                 if (PoolManager.Inst != null)
                 {
-                    PoolManager.DespawnItemToPool("UI_PlayerHUD", hud);
+                    PoolManager.DespawnItemToPool(PoolKey.UI_PlayerHUD, hud);
                 }
                 else
                 {
@@ -1029,6 +1128,7 @@ public class MPRoomManager : MonoBehaviour
         {
             ReleaseHud(actor);
         }
+
         _actorHuds.Clear();
     }
 
@@ -1063,58 +1163,5 @@ public class MPRoomManager : MonoBehaviour
         return mgr;
     }
 
-    #region Battle Stats
-    private void ResetBattleStats()
-    {
-        _battleStats = new BattleStats();
-    }
-
-    private BattleResultData BuildBattleResult(bool isWin)
-    {
-        return new BattleResultData
-        {
-            IsWin = isWin,
-            DurationSeconds = _currentTime,
-            Stats = _battleStats.Clone()
-        };
-    }
-
-    private void RegisterEnemySpawn()
-    {
-        if (_battleStats != null)
-        {
-            _battleStats.TotalEnemySpawns++;
-        }
-    }
-
-    private void RegisterEnemyKill()
-    {
-        if (_battleStats != null)
-        {
-            _battleStats.TotalEnemyKills++;
-        }
-    }
-
-    public void RegisterPlayerDamageDealt(int amount)
-    {
-        if (_battleStats != null)
-        {
-            _battleStats.PlayerDamageDealt += Mathf.Max(0, amount);
-        }
-    }
-
-    public void RegisterPlayerDamageTaken(int amount)
-    {
-        if (_battleStats != null)
-        {
-            _battleStats.PlayerDamageTaken += Mathf.Max(0, amount);
-        }
-    }
-
-    public BattleStats GetBattleStatsSnapshot()
-    {
-        return _battleStats != null ? _battleStats.Clone() : new BattleStats();
-    }
-    #endregion
     #endregion
 }

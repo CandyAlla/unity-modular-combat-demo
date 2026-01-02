@@ -1,12 +1,13 @@
 using UnityEngine;
 using UnityEngine.AI;
 
+
 // MPNpcSoulActor is a basic NPC that chases the player and reports death to the room manager.
 public class MPNpcSoulActor : MPCharacterSoulActorBase
 {
     #region Inspector
     [SerializeField] private float _moveSpeed = 3.5f;
-    [SerializeField] private string _poolKey = "Enemy_Dummy";
+    [SerializeField] private PoolKey _poolKey = PoolKey.Enemy_Dummy;
     public int AttackDamage = 10;
     public float AttackInterval = 1.0f;
     public float AttackRange = 1.2f;
@@ -18,7 +19,6 @@ public class MPNpcSoulActor : MPCharacterSoulActorBase
     private MPSoulActor _playerTarget;
     private MPRoomManager _roomManager;
     private float _attackTimer;
-    private NavMeshAgent _agent;
     private bool _isPaused;
     private NpcStateManager _stateMgr;
     private bool _movementEnabled = true;
@@ -60,36 +60,34 @@ public class MPNpcSoulActor : MPCharacterSoulActorBase
             _attributeComponent.SetBaseValue(AttributeType.MaxHp, MaxHp);
         }
 
-        if (_agent != null)
-        {
-            _agent.speed = _moveSpeed;
-        }
+// Speed update is handled by MPMotionComponent during SetDestination or via attribute changes
     }
 
-    public void SetPoolKey(string poolKey)
+    public void SetPoolKey(PoolKey poolKey)
     {
-        if (!string.IsNullOrEmpty(poolKey))
+        if (poolKey != PoolKey.None)
         {
             _poolKey = poolKey;
         }
     }
 
-    public string GetPoolKey() => _poolKey;
+    public PoolKey GetPoolKey() => _poolKey;
 
     public void SetMovementEnabled(bool enabled)
     {
         _movementEnabled = enabled;
-        if (_agent != null)
+        if (_motionComponent != null)
         {
             if (!enabled)
             {
-                if (_agent.isOnNavMesh) _agent.isStopped = true;
+                _motionComponent.Stop();
             }
             else
             {
-                if (_agent.isOnNavMesh) _agent.isStopped = false;
+                _motionComponent.Resume();
             }
         }
+        
     }
     #endregion
 
@@ -98,10 +96,9 @@ public class MPNpcSoulActor : MPCharacterSoulActorBase
     {
         _isPlayer = false;
         MaxHp = MaxHp <= 0 ? 30 : MaxHp;
-        _agent = GetComponent<NavMeshAgent>();
-        if (_agent != null)
+        if (_motionComponent != null)
         {
-            _agent.speed = _moveSpeed;
+            _motionComponent.SetNavMeshEnabled(true);
         }
 
         _stateMgr = new NpcStateManager();
@@ -118,7 +115,10 @@ public class MPNpcSoulActor : MPCharacterSoulActorBase
 
     protected override void OnUpdateNpcMovement(float deltaTime)
     {
-        if (_isPaused || IsDead || _agent == null || !_movementEnabled) return;
+        if (_isPaused || IsDead || !_movementEnabled) return;
+        // Relaxed check: Allow logic to run even if briefly off-navmesh (e.g. pushed by physics)
+        // Strict checks are only needed when calling SetDestination
+        if (_motionComponent == null) return;
         if (_stateMgr == null) return;
         
         // Priority: If stunned by hit, stop logic
@@ -152,7 +152,7 @@ public class MPNpcSoulActor : MPCharacterSoulActorBase
                 {
                     _stateMgr.ChangeState(NpcStateManager.NpcState.Attack);
                     // Stop moving immediately
-                     if (_agent.isOnNavMesh) _agent.isStopped = true;
+                    _motionComponent.Stop();
                 }
                 else
                 {
@@ -168,7 +168,7 @@ public class MPNpcSoulActor : MPCharacterSoulActorBase
                 {
                     _stateMgr.ChangeState(NpcStateManager.NpcState.Chasing);
                     // Resume moving
-                    if (_agent.isOnNavMesh) _agent.isStopped = false;
+                    _motionComponent.Resume();
                 }
                 else
                 {
@@ -188,28 +188,15 @@ public class MPNpcSoulActor : MPCharacterSoulActorBase
 
     private void UpdateMovementLogic(float sqrDist)
     {
-        if (_agent == null) return;
-
-        if (_agent.isStopped) _agent.isStopped = false;
-
-        float currentSpeed = _moveSpeed;
-        if (_attributeComponent != null)
-        {
-            currentSpeed = _attributeComponent.GetValue(AttributeType.MoveSpeed);
-        }
-        else
-        {
-             currentSpeed = _moveSpeed;
-        }
-        _agent.speed = currentSpeed;
-        _agent.destination = _playerTarget.transform.position;
+        if (_motionComponent == null) return;
+        _motionComponent.SetDestination(_playerTarget.transform.position);
     }
 
     protected override void OnBeforeDeath()
     {
-        if (_agent != null)
+        if (_motionComponent != null)
         {
-            _agent.enabled = false;
+            _motionComponent.SetNavMeshEnabled(false);
         }
 
         // Base class raises EventBus event
@@ -237,16 +224,18 @@ public class MPNpcSoulActor : MPCharacterSoulActorBase
     #region Private Methods
     private void ResetState()
     {
+        base.ResetActorState(); // Ensure base flags like IsHurtStunned are reset
+        
         IsDead = false;
         CurrentHp = MaxHp;
         _attackTimer = 0f;
         _isPaused = false;
         _movementEnabled = true;
-        // keep unique id as assigned by spawner
-        if (_agent != null)
+
+        if (_motionComponent != null)
         {
-            _agent.enabled = true;
-            _agent.isStopped = false;
+            _motionComponent.SetNavMeshEnabled(true);
+            _motionComponent.Resume();
         }
     }
 
@@ -281,16 +270,15 @@ public class MPNpcSoulActor : MPCharacterSoulActorBase
     {
         _isPaused = paused;
 
-        if (_agent != null)
+        if (_motionComponent != null && _motionComponent.IsOnNavMesh)
         {
             if (paused)
             {
-                _agent.isStopped = true;
-                _agent.velocity = Vector3.zero;
+                _motionComponent.Stop();
             }
             else
             {
-                _agent.isStopped = false;
+                _motionComponent.Resume();
             }
         }
     }
